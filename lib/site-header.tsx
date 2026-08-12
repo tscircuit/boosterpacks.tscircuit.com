@@ -8,9 +8,7 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
       className={compact ? "site-header site-header--compact" : "site-header"}
     >
       <a className="brand" href="/" aria-label="BoosterPack Index home">
-        <span className="brand-mark" aria-hidden="true">
-          ts
-        </span>
+        <img className="brand-mark" src="/ts-logo.svg" alt="" />
         <span className="brand-name">boosterpacks</span>
         <span className="brand-domain">.tscircuit.com</span>
       </a>
@@ -20,7 +18,7 @@ export function SiteHeader({ compact = false }: SiteHeaderProps) {
         target="_blank"
         rel="noreferrer"
       >
-        Source boards <span aria-hidden="true">↗</span>
+        GitHub <span aria-hidden="true">↗</span>
       </a>
     </header>
   )

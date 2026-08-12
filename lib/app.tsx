@@ -25,7 +25,7 @@ export function App() {
   if (state.status === "loading") {
     return (
       <div className="loading-screen">
-        <span className="brand-mark">ts</span>
+        <img className="brand-mark" src="/ts-logo.svg" alt="" />
         <p>Loading BoosterPacks…</p>
       </div>
     )

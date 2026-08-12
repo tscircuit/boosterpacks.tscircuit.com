@@ -73,71 +73,57 @@ export function BoardPage({ board }: BoardPageProps) {
         <section className="board-views">
           <div className="board-views__heading">
             <div>
-              <div className="section-label">Design views</div>
-              <h2>See every connection.</h2>
+              <div className="section-label">Design files</div>
+              <h2>Board documentation</h2>
             </div>
-            <p>Generated directly from the board’s tscircuit source.</p>
+            <p>Generated directly from this board’s tscircuit source.</p>
           </div>
 
-          <div className="drawing-grid">
-            <article className="drawing-panel">
-              <div className="drawing-panel__header">
-                <div>
-                  <span className="drawing-panel__number">01</span>
-                  <h3>PCB layout</h3>
-                </div>
-                <a href={board.assets.pcbSvg} target="_blank" rel="noreferrer">
-                  Open SVG ↗
-                </a>
-              </div>
-              <a
-                className="drawing-panel__canvas"
-                href={board.assets.pcbSvg}
-                target="_blank"
-                rel="noreferrer"
-              >
+          <div className="documentation-grid">
+            <article className="pcb-panel">
+              <div className="pcb-panel__canvas">
                 <img
                   src={board.assets.pcbSvg}
                   alt={`${board.name} PCB layout`}
                 />
-              </a>
+              </div>
             </article>
 
-            <article className="drawing-panel drawing-panel--schematic">
-              <div className="drawing-panel__header">
-                <div>
-                  <span className="drawing-panel__number">02</span>
-                  <h3>Schematic</h3>
-                </div>
-                <a
-                  href={board.assets.schematicSvg}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Open SVG ↗
-                </a>
+            <aside className="download-panel">
+              <div className="download-panel__icon" aria-hidden="true">
+                ↓
+              </div>
+              <div className="file-type">Schematic</div>
+              <h3>Download the full schematic</h3>
+              <p>
+                The schematic may contain multiple pages. Download the SVG to
+                review the complete circuit drawing.
+              </p>
+              <div className="download-panel__meta">
+                <span>SVG document</span>
+                <span>Multi-page</span>
               </div>
               <a
-                className="drawing-panel__canvas"
+                className="download-link"
                 href={board.assets.schematicSvg}
-                target="_blank"
-                rel="noreferrer"
+                download={`${board.slug}-schematic.svg`}
               >
-                <img
-                  src={board.assets.schematicSvg}
-                  alt={`${board.name} schematic`}
-                />
+                Download schematic <span aria-hidden="true">↓</span>
               </a>
-            </article>
+              <div className="download-panel__rule" />
+              <span className="download-panel__note">
+                Generated from tscircuit source
+              </span>
+            </aside>
           </div>
         </section>
       </main>
 
       <footer className="site-footer site-footer--detail">
         <a href="/">← Back to the directory</a>
-        <span className="site-footer__note">
-          Source commit {board.sourceCommit.slice(0, 7)}
-        </span>
+        <a href={board.githubUrl} target="_blank" rel="noreferrer">
+          View on GitHub ↗
+        </a>
       </footer>
     </div>
   )

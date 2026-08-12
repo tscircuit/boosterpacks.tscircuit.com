@@ -41,9 +41,6 @@ export function HomePage({ boards }: HomePageProps) {
       <section className="hero-shell">
         <SiteHeader />
         <div className="hero">
-          <div className="hero__eyebrow">
-            <span className="status-dot" /> Open hardware directory
-          </div>
           <h1>
             Find your next
             <br />
@@ -72,17 +69,14 @@ export function HomePage({ boards }: HomePageProps) {
 
       <main className="directory">
         <div className="directory__heading">
-          <div>
-            <div className="section-label">The collection</div>
-            <h2>Built to inspect</h2>
-          </div>
-          <p>
-            {filteredBoards.length}{" "}
-            {filteredBoards.length === 1 ? "board" : "boards"}
-            {normalizedQuery
-              ? ` matching “${query.trim()}”`
-              : " ready to explore"}
-          </p>
+          <h2>BoosterPack boards</h2>
+          {normalizedQuery ? (
+            <p>
+              {filteredBoards.length}{" "}
+              {filteredBoards.length === 1 ? "result" : "results"} for “
+              {query.trim()}”
+            </p>
+          ) : null}
         </div>
 
         {filteredBoards.length > 0 ? (
