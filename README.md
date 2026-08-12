@@ -54,3 +54,21 @@ bun run build:site
 `bun run start` opens the React Cosmos fixtures used to develop the index and
 detail page components in isolation. The full production command is
 `bun run build`.
+
+## Deployment
+
+Production assets are built and deployed to the Vercel project
+`tscircuit/boosterpacks-tscircuit-com`, which is connected to this GitHub
+repository for production deployments from `main`. A small Cloudflare Worker owns
+`boosterpacks.tscircuit.com` and forwards requests to the stable Vercel
+production alias, so every future Vercel production deployment is immediately
+available on the custom domain.
+
+Deploy both layers with:
+
+```sh
+bun run deploy
+```
+
+Use `bun run deploy:vercel` for ordinary content releases and
+`bun run deploy:edge` only when `worker/proxy.ts` or `wrangler.jsonc` changes.

@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "boosterpacks-tscircuit-com",
+  "main": "worker/proxy.ts",
+  "compatibility_date": "2026-08-12",
+  "routes": [
+    {
+      "pattern": "boosterpacks.tscircuit.com",
+      "custom_domain": true
+    }
+  ]
+}
