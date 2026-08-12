@@ -134,6 +134,7 @@ async function resolveSourceDirectory() {
       cachedSource,
     )
   } else {
+    await rm(cachedSource, { recursive: true, force: true })
     await mkdir(dirname(cachedSource), { recursive: true })
     await runCommand(
       [
