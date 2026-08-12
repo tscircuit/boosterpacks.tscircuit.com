@@ -1,0 +1,352 @@
+import {
+  copyFile,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises"
+import { dirname, join, resolve } from "node:path"
+import {
+  computeWorldAABB,
+  createSceneFromGLTF,
+  encodePNG,
+  loadGLTFWithResourcesFromURL,
+  renderSceneFromGLTF,
+} from "poppygl"
+import type { BoardManifest, BoosterBoard } from "lib/board-types"
+
+const SOURCE_REPOSITORY = "https://github.com/tscircuit/boosters"
+const projectRoot = resolve(import.meta.dir, "..")
+
+export function humanizeSlug(slug: string) {
+  return slug
+    .split("-")
+    .map((part) => part.toUpperCase())
+    .join("-")
+}
+
+export function extractReadmeMetadata(markdown: string, slug: string) {
+  const title = markdown.match(/^#\s+(.+)$/m)?.[1]?.trim() || humanizeSlug(slug)
+  const paragraphs = markdown
+    .replace(/^#\s+.+$/m, "")
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.replace(/\s+/g, " ").trim())
+
+  const rawDescription = paragraphs.find(
+    (paragraph) =>
+      paragraph.length > 40 &&
+      !paragraph.startsWith("#") &&
+      !paragraph.startsWith("-") &&
+      !paragraph.startsWith("|") &&
+      !paragraph.startsWith("```") &&
+      !paragraph.startsWith(">") &&
+      !paragraph.startsWith("!["),
+  )
+
+  const description = cleanMarkdown(
+    rawDescription ||
+      `An open-source ${title} board implemented with tscircuit.`,
+  )
+
+  return { title: cleanMarkdown(title), description }
+}
+
+export function inferTags(slug: string, name: string, description: string) {
+  const haystack = `${slug} ${name} ${description}`.toLowerCase()
+  const matches: Array<[RegExp, string]> = [
+    [/motor|drv8|h-bridge|mosfet/, "motor control"],
+    [/temperature|tmp107|tmp117/, "temperature"],
+    [/\bpir\b|motion/, "motion sensing"],
+    [/education|edumkii|joystick|display/, "education"],
+    [/sensor|sensing|accelerometer/, "sensors"],
+    [/power|buck|driver/, "power electronics"],
+    [/three-phase|3-phase/, "three-phase"],
+  ]
+  const tags = matches
+    .filter(([pattern]) => pattern.test(haystack))
+    .map(([, tag]) => tag)
+
+  return [...new Set([...tags, "LaunchPad"])].slice(0, 4)
+}
+
+function cleanMarkdown(value: string) {
+  return value
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[`*_~]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+async function runCommand(command: string[], cwd: string) {
+  console.log(`\n$ ${command.join(" ")}`)
+  const child = Bun.spawn(command, {
+    cwd,
+    stdin: "inherit",
+    stdout: "inherit",
+    stderr: "inherit",
+  })
+  const exitCode = await child.exited
+
+  if (exitCode !== 0) {
+    throw new Error(`${command[0]} exited with code ${exitCode}`)
+  }
+}
+
+async function pathExists(path: string) {
+  try {
+    await stat(path)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function findFiles(root: string, filename: string): Promise<string[]> {
+  const entries = await readdir(root, { withFileTypes: true })
+  const matches: string[] = []
+
+  for (const entry of entries) {
+    const path = join(root, entry.name)
+    if (entry.isDirectory()) {
+      matches.push(...(await findFiles(path, filename)))
+    } else if (entry.isFile() && entry.name === filename) {
+      matches.push(path)
+    }
+  }
+
+  return matches
+}
+
+async function resolveSourceDirectory() {
+  const sourceDirIndex = process.argv.indexOf("--source-dir")
+  const explicitSource =
+    sourceDirIndex >= 0 ? process.argv[sourceDirIndex + 1] : undefined
+
+  if (explicitSource) return resolve(explicitSource)
+
+  const cachedSource = join(projectRoot, "work", "boosters")
+  if (await pathExists(join(cachedSource, ".git"))) {
+    await runCommand(
+      ["git", "pull", "--ff-only", "origin", "main"],
+      cachedSource,
+    )
+  } else {
+    await mkdir(dirname(cachedSource), { recursive: true })
+    await runCommand(
+      [
+        "git",
+        "clone",
+        "--depth",
+        "1",
+        `${SOURCE_REPOSITORY}.git`,
+        cachedSource,
+      ],
+      projectRoot,
+    )
+  }
+
+  return cachedSource
+}
+
+async function discoverBoards(sourceDir: string) {
+  const entries = await readdir(sourceDir, { withFileTypes: true })
+  const boardSlugs: string[] = []
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) continue
+
+    const entrypoint = join(sourceDir, entry.name, "index.circuit.tsx")
+    if (await pathExists(entrypoint)) boardSlugs.push(entry.name)
+  }
+
+  return boardSlugs.sort()
+}
+
+async function locateBoardOutput(sourceDir: string, slug: string) {
+  const distDir = join(sourceDir, "dist")
+  const glbFiles = await findFiles(distDir, "3d.glb")
+  const glbPath = glbFiles.find((candidate) =>
+    candidate.split(/[\\/]/).includes(slug),
+  )
+
+  if (!glbPath) throw new Error(`No GLB build output found for ${slug}`)
+
+  const outputDir = dirname(glbPath)
+  const required = ["pcb.svg", "schematic.svg"]
+  for (const filename of required) {
+    if (!(await pathExists(join(outputDir, filename)))) {
+      throw new Error(`Missing ${filename} build output for ${slug}`)
+    }
+  }
+
+  return outputDir
+}
+
+async function buildBoardRecord(
+  sourceDir: string,
+  slug: string,
+  sourceCommit: string,
+  publicBoardsDir: string,
+): Promise<BoosterBoard> {
+  const readme = await readFile(join(sourceDir, slug, "README.md"), "utf8")
+  const { title, description } = extractReadmeMetadata(readme, slug)
+  const outputDir = await locateBoardOutput(sourceDir, slug)
+  const destination = join(publicBoardsDir, slug)
+  await mkdir(destination, { recursive: true })
+
+  await Promise.all([
+    copyFile(join(outputDir, "3d.glb"), join(destination, "board.glb")),
+    copyFile(join(outputDir, "pcb.svg"), join(destination, "pcb.svg")),
+    copyFile(
+      join(outputDir, "schematic.svg"),
+      join(destination, "schematic.svg"),
+    ),
+  ])
+
+  const glb = await readFile(join(destination, "board.glb"))
+  const circuitJson = JSON.parse(
+    await readFile(join(outputDir, "circuit.json"), "utf8"),
+  ) as Array<Record<string, unknown>>
+  const pcbBoard = circuitJson.find((element) => element.type === "pcb_board")
+  const boardSpan = Math.max(
+    typeof pcbBoard?.width === "number" ? pcbBoard.width : 100,
+    typeof pcbBoard?.height === "number" ? pcbBoard.height : 100,
+  )
+  const boardCameraScale = Math.hypot(
+    typeof pcbBoard?.width === "number" ? pcbBoard.width : 100,
+    typeof pcbBoard?.height === "number" ? pcbBoard.height : 100,
+  )
+  const boardCenter =
+    pcbBoard?.center && typeof pcbBoard.center === "object"
+      ? (pcbBoard.center as { x?: unknown; y?: unknown })
+      : undefined
+  const centerX = typeof boardCenter?.x === "number" ? boardCenter.x : 0
+  const centerZ = typeof boardCenter?.y === "number" ? boardCenter.y : 0
+  const { gltf, resources } = await loadGLTFWithResourcesFromURL(
+    "https://local.invalid/board.glb",
+    {
+      fetchImpl: async () => new Response(glb),
+    },
+  )
+  const scene = createSceneFromGLTF(gltf, resources)
+  const initialDrawCallCount = scene.drawCalls.length
+  scene.drawCalls = scene.drawCalls.filter((drawCall) => {
+    const bounds = computeWorldAABB([drawCall])
+    const spans = bounds.max.map(
+      (maximum, axis) => maximum - (bounds.min[axis] ?? maximum),
+    )
+    const center = bounds.max.map(
+      (maximum, axis) => (maximum + (bounds.min[axis] ?? maximum)) / 2,
+    )
+    const isOversized = Math.max(...spans) > boardSpan * 2
+    const isDistant = Math.max(...center.map(Math.abs)) > boardSpan * 2
+    return !isOversized && !isDistant
+  })
+
+  const removedDrawCalls = initialDrawCallCount - scene.drawCalls.length
+  if (removedDrawCalls > 0) {
+    console.log(`Removed ${removedDrawCalls} thumbnail geometry outliers.`)
+  }
+
+  const { bitmap } = renderSceneFromGLTF(scene, {
+    width: 960,
+    height: 680,
+    ambient: 0.35,
+    supersampling: 2,
+    fov: 50,
+    camPos: [
+      centerX + boardCameraScale * 0.64,
+      boardCameraScale * 0.52,
+      centerZ + boardCameraScale * 0.64,
+    ],
+    lookAt: [centerX, 0, centerZ],
+  })
+  const thumbnail = await encodePNG(bitmap)
+  await writeFile(join(destination, "thumbnail.png"), thumbnail)
+
+  return {
+    slug,
+    name: title,
+    description,
+    tags: inferTags(slug, title, description),
+    githubUrl: `${SOURCE_REPOSITORY}/tree/main/${slug}`,
+    sourceCommit,
+    assets: {
+      glb: `/boards/${slug}/board.glb`,
+      thumbnail: `/boards/${slug}/thumbnail.png`,
+      pcbSvg: `/boards/${slug}/pcb.svg`,
+      schematicSvg: `/boards/${slug}/schematic.svg`,
+    },
+  }
+}
+
+export async function generateBoardAssets() {
+  const sourceDir = await resolveSourceDirectory()
+  const boardSlugs = await discoverBoards(sourceDir)
+
+  if (boardSlugs.length === 0) {
+    throw new Error(`No index.circuit.tsx boards found in ${sourceDir}`)
+  }
+
+  if (!process.argv.includes("--skip-build")) {
+    await runCommand(["bun", "install", "--frozen-lockfile"], sourceDir)
+    await runCommand(
+      [
+        "bunx",
+        "tsci",
+        "build",
+        "--concurrency",
+        "4",
+        "--autorouter-timeout",
+        "600s",
+        "--all-images",
+        "--svgs",
+        "--glbs",
+      ],
+      sourceDir,
+    )
+  }
+
+  const commitProcess = Bun.spawn(["git", "rev-parse", "HEAD"], {
+    cwd: sourceDir,
+    stdout: "pipe",
+  })
+  const sourceCommit = (await new Response(commitProcess.stdout).text()).trim()
+  if ((await commitProcess.exited) !== 0 || !sourceCommit) {
+    throw new Error("Unable to resolve boosters source commit")
+  }
+
+  const publicBoardsDir = join(projectRoot, "public", "boards")
+  await rm(publicBoardsDir, { recursive: true, force: true })
+  await mkdir(publicBoardsDir, { recursive: true })
+
+  const boards: BoosterBoard[] = []
+  for (const slug of boardSlugs) {
+    console.log(`\nPreparing ${slug}`)
+    boards.push(
+      await buildBoardRecord(sourceDir, slug, sourceCommit, publicBoardsDir),
+    )
+  }
+
+  const manifest: BoardManifest = {
+    sourceRepository: SOURCE_REPOSITORY,
+    sourceCommit,
+    boards,
+  }
+  await writeFile(
+    join(publicBoardsDir, "index.json"),
+    `${JSON.stringify(manifest, null, 2)}\n`,
+  )
+
+  console.log(`\nGenerated ${boards.length} BoosterPack board records.`)
+}
+
+if (import.meta.main) {
+  generateBoardAssets().catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
+}

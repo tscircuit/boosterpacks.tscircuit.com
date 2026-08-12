@@ -1,0 +1,28 @@
+name: Build BoosterPack Site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "23 9 * * 1"
+
+jobs:
+  build-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Generate board assets and build site
+        run: bun run build
+      - name: Upload static site
+        uses: actions/upload-artifact@v4
+        with:
+          name: boosterpacks-site
+          path: dist

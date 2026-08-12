@@ -1,0 +1,5 @@
+/boards/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/boards/index.json
+  Cache-Control: public, max-age=300

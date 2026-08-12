@@ -1,0 +1,38 @@
+{
+  "name": "boosterpacks.tscircuit.com",
+  "version": "0.1.0",
+  "module": "lib/index.ts",
+  "files": ["lib"],
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "bun run generate:boards && bun run build:site",
+    "build:site": "vite build && bun run scripts/create-static-routes.ts",
+    "dev": "vite",
+    "start": "cosmos",
+    "generate:boards": "bun run scripts/generate-board-assets.ts",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/model-viewer": "^4.3.1",
+    "@tscircuit/alphabet": "^0.0.25",
+    "poppygl": "^0.0.27",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.8",
+    "@types/bun": "^1.3.14",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "react-cosmos": "^7.3.0",
+    "react-cosmos-plugin-vite": "^7.3.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.1"
+  }
+}
