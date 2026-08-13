@@ -32,11 +32,13 @@ export async function convertCircuitJsonToAltiumZip(
         : ""
     return {
       filename: `${safeProjectName}${suffix}.SchDoc`,
-      content: createSchematicDocument(
+      content: createSchematicDocument({
         circuitJson,
-        sheet ? asString(sheet.schematic_sheet_id) : undefined,
-        index === 0,
-      ),
+        schematicSheetId: sheet
+          ? asString(sheet.schematic_sheet_id)
+          : undefined,
+        isFirstSchematicSheet: index === 0,
+      }),
     }
   })
   const projectFilename = `${safeProjectName}.PrjPcb`

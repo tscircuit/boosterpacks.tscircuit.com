@@ -23,32 +23,47 @@ export const board = (
   ...overrides,
 })
 
-export const sourceComponent = (id: string, name: string): CircuitElement => ({
+export const sourceComponent = (
+  sourceComponentId: string,
+  name: string,
+): CircuitElement => ({
   type: "source_component",
-  source_component_id: id,
+  source_component_id: sourceComponentId,
   name,
 })
 
-export const sourcePort = (
-  id: string,
-  componentId: string,
-  pinNumber: number,
-): CircuitElement => ({
+type SourcePortFixtureParams = {
+  pinNumber: number
+  sourceComponentId: string
+  sourcePortId: string
+}
+
+export const sourcePort = ({
+  pinNumber,
+  sourceComponentId,
+  sourcePortId,
+}: SourcePortFixtureParams): CircuitElement => ({
   type: "source_port",
-  source_port_id: id,
-  source_component_id: componentId,
+  source_port_id: sourcePortId,
+  source_component_id: sourceComponentId,
   pin_number: pinNumber,
   name: `pin${pinNumber}`,
 })
 
-export const pcbComponent = (
-  id: string,
-  sourceId: string,
-  overrides: Record<string, unknown> = {},
-): CircuitElement => ({
+type PcbComponentFixtureParams = {
+  overrides?: Record<string, unknown>
+  pcbComponentId: string
+  sourceComponentId: string
+}
+
+export const pcbComponent = ({
+  overrides = {},
+  pcbComponentId,
+  sourceComponentId,
+}: PcbComponentFixtureParams): CircuitElement => ({
   type: "pcb_component",
-  pcb_component_id: id,
-  source_component_id: sourceId,
+  pcb_component_id: pcbComponentId,
+  source_component_id: sourceComponentId,
   center: { x: 0, y: 0 },
   width: 2,
   height: 1,
@@ -57,15 +72,21 @@ export const pcbComponent = (
   ...overrides,
 })
 
-export const pcbPort = (
-  id: string,
-  sourceId: string,
-  componentId: string,
-): CircuitElement => ({
+type PcbPortFixtureParams = {
+  pcbComponentId: string
+  pcbPortId: string
+  sourcePortId: string
+}
+
+export const pcbPort = ({
+  pcbComponentId,
+  pcbPortId,
+  sourcePortId,
+}: PcbPortFixtureParams): CircuitElement => ({
   type: "pcb_port",
-  pcb_port_id: id,
-  source_port_id: sourceId,
-  pcb_component_id: componentId,
+  pcb_port_id: pcbPortId,
+  source_port_id: sourcePortId,
+  pcb_component_id: pcbComponentId,
 })
 
 export const extractArchive = async (

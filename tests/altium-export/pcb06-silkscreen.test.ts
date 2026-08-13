@@ -12,7 +12,7 @@ test("exports top and bottom silkscreen paths and text", async () => {
   const elements: CircuitElement[] = [
     board(),
     sourceComponent("sc1", "U1"),
-    pcbComponent("pc1", "sc1"),
+    pcbComponent({ pcbComponentId: "pc1", sourceComponentId: "sc1" }),
     {
       type: "pcb_silkscreen_path",
       pcb_silkscreen_path_id: "silk1",

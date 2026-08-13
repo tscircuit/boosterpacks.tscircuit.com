@@ -15,7 +15,13 @@ test("merges traces transitively by shared source nets and ports", async () => {
     board(),
     { type: "source_net", source_net_id: "gnd", name: "GND" },
     sourceComponent("sc1", "J1"),
-    ...[1, 2, 3, 4, 5].map((pin) => sourcePort(`sp${pin}`, "sc1", pin)),
+    ...[1, 2, 3, 4, 5].map((pinNumber) =>
+      sourcePort({
+        sourcePortId: `sp${pinNumber}`,
+        sourceComponentId: "sc1",
+        pinNumber,
+      }),
+    ),
     {
       type: "source_trace",
       source_trace_id: "st1",
@@ -46,16 +52,20 @@ test("merges traces transitively by shared source nets and ports", async () => {
       connected_source_port_ids: ["sp5"],
       name: "DATA",
     },
-    pcbComponent("pc1", "sc1"),
-    ...[1, 2, 3, 4, 5].flatMap((pin) => [
-      pcbPort(`pp${pin}`, `sp${pin}`, "pc1"),
+    pcbComponent({ pcbComponentId: "pc1", sourceComponentId: "sc1" }),
+    ...[1, 2, 3, 4, 5].flatMap((pinNumber) => [
+      pcbPort({
+        pcbPortId: `pp${pinNumber}`,
+        sourcePortId: `sp${pinNumber}`,
+        pcbComponentId: "pc1",
+      }),
       {
         type: "pcb_smtpad",
-        pcb_smtpad_id: `pad${pin}`,
+        pcb_smtpad_id: `pad${pinNumber}`,
         pcb_component_id: "pc1",
-        pcb_port_id: `pp${pin}`,
+        pcb_port_id: `pp${pinNumber}`,
         shape: "rect",
-        x: pin,
+        x: pinNumber,
         y: 0,
         width: 0.5,
         height: 0.5,

@@ -20,10 +20,14 @@ test("falls back to a finite rectangular board for invalid geometry", async () =
       ],
     }),
     sourceComponent("sc1", "U1"),
-    pcbComponent("pc1", "sc1", {
-      center: { x: Number.NaN, y: 0 },
-      width: -5,
-      height: 0,
+    pcbComponent({
+      pcbComponentId: "pc1",
+      sourceComponentId: "sc1",
+      overrides: {
+        center: { x: Number.NaN, y: 0 },
+        width: -5,
+        height: 0,
+      },
     }),
   ])
 

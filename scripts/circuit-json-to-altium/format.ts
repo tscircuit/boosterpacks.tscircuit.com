@@ -4,20 +4,20 @@ export const MILLIMETERS_TO_MILS = 39.3700787402
 export const DEFAULT_BOARD_WIDTH_MM = 100
 export const DEFAULT_BOARD_HEIGHT_MM = 80
 
-export const asNumber = (value: unknown, fallback = 0) =>
-  typeof value === "number" && Number.isFinite(value) ? value : fallback
+export const asNumber = (input: unknown, fallback = 0): number =>
+  typeof input === "number" && Number.isFinite(input) ? input : fallback
 
-export const asPositiveNumber = (value: unknown, fallback: number) => {
-  const number = asNumber(value, fallback)
+export const asPositiveNumber = (input: unknown, fallback: number): number => {
+  const number = asNumber(input, fallback)
   return number > 0 ? number : fallback
 }
 
-export const asString = (value: unknown, fallback = "") =>
-  typeof value === "string" ? value : fallback
+export const asString = (input: unknown, fallback = ""): string =>
+  typeof input === "string" ? input : fallback
 
-export const asPoint = (value: unknown): Point | undefined => {
-  if (!value || typeof value !== "object") return undefined
-  const point = value as Record<string, unknown>
+export const asPoint = (input: unknown): Point | undefined => {
+  if (!input || typeof input !== "object") return undefined
+  const point = input as Record<string, unknown>
   if (
     typeof point.x !== "number" ||
     !Number.isFinite(point.x) ||
@@ -29,12 +29,12 @@ export const asPoint = (value: unknown): Point | undefined => {
   return { x: point.x, y: point.y }
 }
 
-export const sanitizeField = (value: unknown) => {
-  const rawValue =
-    typeof value === "number" && Number.isFinite(value)
-      ? String(value)
-      : asString(value)
-  return [...rawValue]
+export const sanitizeField = (field: unknown): string => {
+  const rawField =
+    typeof field === "number" && Number.isFinite(field)
+      ? String(field)
+      : asString(field)
+  return [...rawField]
     .map((character) => {
       const characterCode = character.charCodeAt(0)
       return character === "|" || characterCode < 32 || characterCode === 127
@@ -45,24 +45,24 @@ export const sanitizeField = (value: unknown) => {
     .trim()
 }
 
-export const sanitizeFilename = (value: string) => {
-  const sanitized = value
+export const sanitizeFilename = (filename: string): string => {
+  const sanitizedFilename = filename
     .replace(/[^a-z0-9._-]+/giu, "-")
     .replace(/^[.-]+|[.-]+$/gu, "")
     .slice(0, 80)
-  if (!sanitized) return "board"
-  if (/^(?:aux|con|nul|prn|com[1-9]|lpt[1-9])$/iu.test(sanitized)) {
-    return `board-${sanitized}`
+  if (!sanitizedFilename) return "board"
+  if (/^(?:aux|con|nul|prn|com[1-9]|lpt[1-9])$/iu.test(sanitizedFilename)) {
+    return `board-${sanitizedFilename}`
   }
-  return sanitized
+  return sanitizedFilename
 }
 
-export const formatNumber = (value: number) => {
-  const rounded = Math.round(value * 10_000) / 10_000
+export const formatNumber = (number: number): string => {
+  const rounded = Math.round(number * 10_000) / 10_000
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(4)
 }
 
-export const formatMil = (value: number) => `${formatNumber(value)}mil`
+export const formatMil = (mils: number): string => `${formatNumber(mils)}mil`
 
 export const byType = (circuitJson: CircuitElement[], type: string) =>
   circuitJson.filter((element) => element.type === type)

@@ -13,8 +13,16 @@ test("preserves symbols, pins, wires, labels, and unique junctions", async () =>
   const elements: CircuitElement[] = [
     board(),
     sourceComponent("sc1", "R|1\nMAIN"),
-    sourcePort("sp1", "sc1", 1),
-    sourcePort("sp2", "sc1", 2),
+    sourcePort({
+      sourcePortId: "sp1",
+      sourceComponentId: "sc1",
+      pinNumber: 1,
+    }),
+    sourcePort({
+      sourcePortId: "sp2",
+      sourceComponentId: "sc1",
+      pinNumber: 2,
+    }),
     {
       type: "schematic_component",
       schematic_component_id: "schc1",

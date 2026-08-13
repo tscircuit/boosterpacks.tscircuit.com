@@ -14,20 +14,37 @@ test("exports SMT, plated slots, and non-plated holes with ownership", async () 
   const elements: CircuitElement[] = [
     board(),
     sourceComponent("sc1", "J1"),
-    sourcePort("sp1", "sc1", 1),
-    sourcePort("sp2", "sc1", 2),
+    sourcePort({
+      sourcePortId: "sp1",
+      sourceComponentId: "sc1",
+      pinNumber: 1,
+    }),
+    sourcePort({
+      sourcePortId: "sp2",
+      sourceComponentId: "sc1",
+      pinNumber: 2,
+    }),
     {
       type: "source_trace",
       source_trace_id: "st1",
       connected_source_port_ids: ["sp1", "sp2"],
       name: "IO",
     },
-    pcbComponent("pc1", "sc1", {
-      layer: "bottom",
-      rotation: 270,
+    pcbComponent({
+      pcbComponentId: "pc1",
+      sourceComponentId: "sc1",
+      overrides: { layer: "bottom", rotation: 270 },
     }),
-    pcbPort("pp1", "sp1", "pc1"),
-    pcbPort("pp2", "sp2", "pc1"),
+    pcbPort({
+      pcbPortId: "pp1",
+      sourcePortId: "sp1",
+      pcbComponentId: "pc1",
+    }),
+    pcbPort({
+      pcbPortId: "pp2",
+      sourcePortId: "sp2",
+      pcbComponentId: "pc1",
+    }),
     {
       type: "pcb_smtpad",
       pcb_smtpad_id: "pad1",

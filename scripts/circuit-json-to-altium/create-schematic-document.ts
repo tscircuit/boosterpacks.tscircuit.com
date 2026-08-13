@@ -1,274 +1,325 @@
 import { asNumber, asPoint, asString, byType, sanitizeField } from "./format"
-import type { CircuitElement, Point } from "./types"
+import { getSchematicTransform } from "./get-schematic-transform"
+import type {
+  CircuitElement,
+  SchematicComponentId,
+  SchematicSheetId,
+  SourceComponentId,
+  SourcePortId,
+} from "./types"
 
-const getSchematicTransform = (elements: CircuitElement[]) => {
-  const points: Point[] = []
-  for (const element of elements) {
-    const center = asPoint(element.center)
-    if (center) points.push(center)
-    const anchor = asPoint(element.anchor_position)
-    if (anchor) points.push(anchor)
-    if (element.type === "schematic_trace" && Array.isArray(element.edges)) {
-      for (const edge of element.edges as CircuitElement[]) {
-        const from = asPoint(edge.from)
-        const to = asPoint(edge.to)
-        if (from) points.push(from)
-        if (to) points.push(to)
-      }
-    }
-    if (
-      element.type === "schematic_trace" &&
-      Array.isArray(element.junctions)
-    ) {
-      for (const junction of element.junctions) {
-        const point = asPoint(junction)
-        if (point) points.push(point)
-      }
-    }
-  }
-  const minX =
-    points.length > 0 ? Math.min(...points.map((point) => point.x)) : 0
-  const maxY =
-    points.length > 0 ? Math.max(...points.map((point) => point.y)) : 0
-  const transform = (point: Point) => ({
-    x: Math.round((point.x - minX) * 20 + 100),
-    y: Math.round((maxY - point.y) * 20 + 100),
-  })
-  const transformed = points.map(transform)
-  return {
-    transform,
-    width: Math.max(400, ...transformed.map((point) => point.x + 100)),
-    height: Math.max(300, ...transformed.map((point) => point.y + 100)),
-  }
+type CreateSchematicDocumentParams = {
+  circuitJson: CircuitElement[]
+  isFirstSchematicSheet: boolean
+  schematicSheetId: SchematicSheetId | undefined
 }
 
-export const createSchematicDocument = (
-  circuitJson: CircuitElement[],
-  sheetId: string | undefined,
-  isFirstSheet: boolean,
-) => {
-  const belongsToSheet = (element: CircuitElement) => {
-    const elementSheetId = asString(element.schematic_sheet_id)
-    return sheetId
-      ? elementSheetId === sheetId || (isFirstSheet && !elementSheetId)
-      : !elementSheetId || isFirstSheet
-  }
+type SchematicSheetMembershipParams = {
+  element: CircuitElement
+  isFirstSchematicSheet: boolean
+  schematicSheetId: SchematicSheetId | undefined
+}
+
+type SchematicRecordContext = {
+  lines: string[]
+  nextRecordIndex: number
+}
+
+type AltiumSchematicPointKey = string
+
+function doesElementBelongToSchematicSheet({
+  element,
+  isFirstSchematicSheet,
+  schematicSheetId,
+}: SchematicSheetMembershipParams): boolean {
+  const elementSchematicSheetId = asString(element.schematic_sheet_id)
+  return schematicSheetId
+    ? elementSchematicSheetId === schematicSheetId ||
+        (isFirstSchematicSheet && !elementSchematicSheetId)
+    : !elementSchematicSheetId || isFirstSchematicSheet
+}
+
+function addSchematicRecord(
+  recordFields: string[],
+  ctx: SchematicRecordContext,
+): number {
+  const altiumRecordIndex = ctx.nextRecordIndex
+  ctx.lines.push(`|${recordFields.join("|")}`)
+  ctx.nextRecordIndex++
+  return altiumRecordIndex
+}
+
+export function createSchematicDocument({
+  circuitJson,
+  isFirstSchematicSheet,
+  schematicSheetId,
+}: CreateSchematicDocumentParams): string {
   const schematicElements = circuitJson.filter(
     (element) =>
       element.type?.startsWith("schematic_") === true &&
       element.type !== "schematic_sheet" &&
-      belongsToSheet(element),
+      doesElementBelongToSchematicSheet({
+        element,
+        isFirstSchematicSheet,
+        schematicSheetId,
+      }),
   )
-  const { transform, width, height } = getSchematicTransform(schematicElements)
-  const lines = [
-    "|HEADER=Protel for Windows - Schematic Capture Ascii File Version 5.0",
-  ]
-  let recordIndex = 0
-  const addRecord = (fields: string[]) => {
-    const index = recordIndex
-    lines.push(`|${fields.join("|")}`)
-    recordIndex++
-    return index
+  const {
+    circuitToAltiumSchematicPoint,
+    width: altiumSheetWidth,
+    height: altiumSheetHeight,
+  } = getSchematicTransform(schematicElements)
+  const schematicRecordContext: SchematicRecordContext = {
+    lines: [
+      "|HEADER=Protel for Windows - Schematic Capture Ascii File Version 5.0",
+    ],
+    nextRecordIndex: 0,
   }
-  addRecord([
-    "RECORD=31",
-    "FONTIDCOUNT=2",
-    "SIZE1=10",
-    "FONTNAME1=Arial",
-    "SIZE2=9",
-    "FONTNAME2=Arial",
-    `CUSTOMX=${width}`,
-    `CUSTOMY=${height}`,
-    "USECUSTOMSHEET=T",
-    "SNAPGRIDON=T",
-    "SNAPGRIDSIZE=10",
-  ])
+  addSchematicRecord(
+    [
+      "RECORD=31",
+      "FONTIDCOUNT=2",
+      "SIZE1=10",
+      "FONTNAME1=Arial",
+      "SIZE2=9",
+      "FONTNAME2=Arial",
+      `CUSTOMX=${altiumSheetWidth}`,
+      `CUSTOMY=${altiumSheetHeight}`,
+      "USECUSTOMSHEET=T",
+      "SNAPGRIDON=T",
+      "SNAPGRIDSIZE=10",
+    ],
+    schematicRecordContext,
+  )
 
-  const sourceComponents = new Map(
+  const sourceComponents = new Map<SourceComponentId, CircuitElement>(
     byType(circuitJson, "source_component")
       .filter((element) => typeof element.source_component_id === "string")
       .map((element) => [asString(element.source_component_id), element]),
   )
-  const sourcePorts = new Map(
-    byType(circuitJson, "source_port").map((port) => [
-      asString(port.source_port_id),
-      port,
+  const sourcePorts = new Map<SourcePortId, CircuitElement>(
+    byType(circuitJson, "source_port").map((sourcePort) => [
+      asString(sourcePort.source_port_id),
+      sourcePort,
     ]),
   )
-  const portsByComponent = new Map<string, CircuitElement[]>()
-  for (const port of schematicElements.filter(
+  const schematicPortsByComponentId = new Map<
+    SchematicComponentId,
+    CircuitElement[]
+  >()
+  for (const schematicPort of schematicElements.filter(
     (element) => element.type === "schematic_port",
   )) {
-    const componentId = asString(port.schematic_component_id)
-    portsByComponent.set(componentId, [
-      ...(portsByComponent.get(componentId) ?? []),
-      port,
+    const schematicComponentId = asString(schematicPort.schematic_component_id)
+    schematicPortsByComponentId.set(schematicComponentId, [
+      ...(schematicPortsByComponentId.get(schematicComponentId) ?? []),
+      schematicPort,
     ])
   }
 
-  for (const [componentNumber, component] of schematicElements
+  for (const [componentNumber, schematicComponent] of schematicElements
     .filter((element) => element.type === "schematic_component")
     .entries()) {
-    const center = transform(asPoint(component.center) ?? { x: 0, y: 0 })
+    const altiumComponentCenter = circuitToAltiumSchematicPoint(
+      asPoint(schematicComponent.center) ?? { x: 0, y: 0 },
+    )
     const sourceComponent = sourceComponents.get(
-      asString(component.source_component_id),
+      asString(schematicComponent.source_component_id),
     )
     const designator =
       sanitizeField(sourceComponent?.name) || `U${componentNumber + 1}`
-    const value =
-      sanitizeField(component.symbol_display_value) ||
-      sanitizeField(component.symbol_name) ||
+    const componentComment =
+      sanitizeField(schematicComponent.symbol_display_value) ||
+      sanitizeField(schematicComponent.symbol_name) ||
       designator
-    const libraryReference = sanitizeField(component.symbol_name) || designator
-    const componentIndex = addRecord([
-      "RECORD=1",
-      `LOCATION.X=${center.x}`,
-      `LOCATION.Y=${center.y}`,
-      "ORIENTATION=0",
-      `LIBREFERENCE=${libraryReference}`,
-      "SHOWHIDDENPINS=F",
-      "CURRENTPARTID=1",
-      "ISMIRRORED=F",
-      `UNIQUEID=${sanitizeField(component.schematic_component_id)}`,
-    ])
-    const size =
-      component.size && typeof component.size === "object"
-        ? (component.size as CircuitElement)
+    const libraryReference =
+      sanitizeField(schematicComponent.symbol_name) || designator
+    const altiumComponentRecordIndex = addSchematicRecord(
+      [
+        "RECORD=1",
+        `LOCATION.X=${altiumComponentCenter.x}`,
+        `LOCATION.Y=${altiumComponentCenter.y}`,
+        "ORIENTATION=0",
+        `LIBREFERENCE=${libraryReference}`,
+        "SHOWHIDDENPINS=F",
+        "CURRENTPARTID=1",
+        "ISMIRRORED=F",
+        `UNIQUEID=${sanitizeField(schematicComponent.schematic_component_id)}`,
+      ],
+      schematicRecordContext,
+    )
+    const componentSize =
+      schematicComponent.size && typeof schematicComponent.size === "object"
+        ? (schematicComponent.size as CircuitElement)
         : {}
-    const halfWidth = Math.max(20, Math.round(asNumber(size.width, 2) * 10))
-    const halfHeight = Math.max(15, Math.round(asNumber(size.height, 1.5) * 10))
-    addRecord([
-      "RECORD=14",
-      `OWNERINDEX=${componentIndex}`,
-      "OWNERPARTID=1",
-      `LOCATION.X=${center.x - halfWidth}`,
-      `LOCATION.Y=${center.y - halfHeight}`,
-      `CORNER.X=${center.x + halfWidth}`,
-      `CORNER.Y=${center.y + halfHeight}`,
-      "LINEWIDTH=1",
-      "COLOR=136",
-      "AREACOLOR=16777215",
-      "ISSOLID=F",
-    ])
-    addRecord([
-      "RECORD=34",
-      `OWNERINDEX=${componentIndex}`,
-      "OWNERPARTID=-1",
-      `LOCATION.X=${center.x - halfWidth}`,
-      `LOCATION.Y=${center.y - halfHeight - 12}`,
-      "FONTID=1",
-      "NAME=Designator",
-      `TEXT=${designator}`,
-      "SHOWNAME=F",
-      "ISHIDDEN=F",
-      "ORIENTATION=0",
-      "JUSTIFICATION=0",
-    ])
-    addRecord([
-      "RECORD=41",
-      `OWNERINDEX=${componentIndex}`,
-      "OWNERPARTID=-1",
-      `LOCATION.X=${center.x - halfWidth}`,
-      `LOCATION.Y=${center.y + halfHeight + 12}`,
-      "FONTID=2",
-      "NAME=Comment",
-      `TEXT=${value}`,
-      "SHOWNAME=F",
-      "ISHIDDEN=F",
-      "ORIENTATION=0",
-      "JUSTIFICATION=0",
-    ])
+    const altiumHalfWidth = Math.max(
+      20,
+      Math.round(asNumber(componentSize.width, 2) * 10),
+    )
+    const altiumHalfHeight = Math.max(
+      15,
+      Math.round(asNumber(componentSize.height, 1.5) * 10),
+    )
+    addSchematicRecord(
+      [
+        "RECORD=14",
+        `OWNERINDEX=${altiumComponentRecordIndex}`,
+        "OWNERPARTID=1",
+        `LOCATION.X=${altiumComponentCenter.x - altiumHalfWidth}`,
+        `LOCATION.Y=${altiumComponentCenter.y - altiumHalfHeight}`,
+        `CORNER.X=${altiumComponentCenter.x + altiumHalfWidth}`,
+        `CORNER.Y=${altiumComponentCenter.y + altiumHalfHeight}`,
+        "LINEWIDTH=1",
+        "COLOR=136",
+        "AREACOLOR=16777215",
+        "ISSOLID=F",
+      ],
+      schematicRecordContext,
+    )
+    addSchematicRecord(
+      [
+        "RECORD=34",
+        `OWNERINDEX=${altiumComponentRecordIndex}`,
+        "OWNERPARTID=-1",
+        `LOCATION.X=${altiumComponentCenter.x - altiumHalfWidth}`,
+        `LOCATION.Y=${altiumComponentCenter.y - altiumHalfHeight - 12}`,
+        "FONTID=1",
+        "NAME=Designator",
+        `TEXT=${designator}`,
+        "SHOWNAME=F",
+        "ISHIDDEN=F",
+        "ORIENTATION=0",
+        "JUSTIFICATION=0",
+      ],
+      schematicRecordContext,
+    )
+    addSchematicRecord(
+      [
+        "RECORD=41",
+        `OWNERINDEX=${altiumComponentRecordIndex}`,
+        "OWNERPARTID=-1",
+        `LOCATION.X=${altiumComponentCenter.x - altiumHalfWidth}`,
+        `LOCATION.Y=${altiumComponentCenter.y + altiumHalfHeight + 12}`,
+        "FONTID=2",
+        "NAME=Comment",
+        `TEXT=${componentComment}`,
+        "SHOWNAME=F",
+        "ISHIDDEN=F",
+        "ORIENTATION=0",
+        "JUSTIFICATION=0",
+      ],
+      schematicRecordContext,
+    )
 
-    for (const [pinIndex, port] of (
-      portsByComponent.get(asString(component.schematic_component_id)) ?? []
-    ).entries()) {
-      const sourcePort = sourcePorts.get(asString(port.source_port_id))
-      const pinCenter = transform(asPoint(port.center) ?? { x: 0, y: 0 })
-      const orientation =
+    const schematicComponentId = asString(
+      schematicComponent.schematic_component_id,
+    )
+    const schematicPorts =
+      schematicPortsByComponentId.get(schematicComponentId) ?? []
+    for (const [pinIndex, schematicPort] of schematicPorts.entries()) {
+      const sourcePort = sourcePorts.get(asString(schematicPort.source_port_id))
+      const altiumPinCenter = circuitToAltiumSchematicPoint(
+        asPoint(schematicPort.center) ?? { x: 0, y: 0 },
+      )
+      const altiumPinConglomerate =
         {
           left: 58,
           right: 56,
           up: 57,
           down: 59,
-        }[asString(port.facing_direction)] ?? 58
-      addRecord([
-        "RECORD=2",
-        `OWNERINDEX=${componentIndex}`,
-        "OWNERPARTID=1",
-        `DESIGNATOR=${sanitizeField(sourcePort?.pin_number) || pinIndex + 1}`,
-        `NAME=${sanitizeField(port.display_pin_label) || sanitizeField(sourcePort?.name) || `Pin ${pinIndex + 1}`}`,
-        `PINCONGLOMERATE=${orientation}`,
-        `LOCATION.X=${pinCenter.x}`,
-        `LOCATION.Y=${pinCenter.y}`,
-        "PINLENGTH=10",
-        "COLOR=136",
-        "FONTID=2",
-      ])
+        }[asString(schematicPort.facing_direction)] ?? 58
+      addSchematicRecord(
+        [
+          "RECORD=2",
+          `OWNERINDEX=${altiumComponentRecordIndex}`,
+          "OWNERPARTID=1",
+          `DESIGNATOR=${sanitizeField(sourcePort?.pin_number) || pinIndex + 1}`,
+          `NAME=${sanitizeField(schematicPort.display_pin_label) || sanitizeField(sourcePort?.name) || `Pin ${pinIndex + 1}`}`,
+          `PINCONGLOMERATE=${altiumPinConglomerate}`,
+          `LOCATION.X=${altiumPinCenter.x}`,
+          `LOCATION.Y=${altiumPinCenter.y}`,
+          "PINLENGTH=10",
+          "COLOR=136",
+          "FONTID=2",
+        ],
+        schematicRecordContext,
+      )
     }
   }
 
-  for (const trace of schematicElements.filter(
+  for (const schematicTrace of schematicElements.filter(
     (element) => element.type === "schematic_trace",
   )) {
-    if (!Array.isArray(trace.edges)) continue
-    for (const edge of trace.edges as CircuitElement[]) {
-      const from = asPoint(edge.from)
-      const to = asPoint(edge.to)
-      if (!from || !to) continue
-      const start = transform(from)
-      const end = transform(to)
-      addRecord([
-        "RECORD=27",
-        "LINEWIDTH=1",
-        "LOCATIONCOUNT=2",
-        `X1=${start.x}`,
-        `Y1=${start.y}`,
-        `X2=${end.x}`,
-        `Y2=${end.y}`,
-        "COLOR=34816",
-      ])
+    if (!Array.isArray(schematicTrace.edges)) continue
+    for (const edge of schematicTrace.edges as CircuitElement[]) {
+      const circuitStartPoint = asPoint(edge.from)
+      const circuitEndPoint = asPoint(edge.to)
+      if (!circuitStartPoint || !circuitEndPoint) continue
+      const altiumStartPoint = circuitToAltiumSchematicPoint(circuitStartPoint)
+      const altiumEndPoint = circuitToAltiumSchematicPoint(circuitEndPoint)
+      addSchematicRecord(
+        [
+          "RECORD=27",
+          "LINEWIDTH=1",
+          "LOCATIONCOUNT=2",
+          `X1=${altiumStartPoint.x}`,
+          `Y1=${altiumStartPoint.y}`,
+          `X2=${altiumEndPoint.x}`,
+          `Y2=${altiumEndPoint.y}`,
+          "COLOR=34816",
+        ],
+        schematicRecordContext,
+      )
     }
   }
 
-  const emittedJunctions = new Set<string>()
-  for (const trace of schematicElements.filter(
+  const emittedJunctions = new Set<AltiumSchematicPointKey>()
+  for (const schematicTrace of schematicElements.filter(
     (element) => element.type === "schematic_trace",
   )) {
-    if (!Array.isArray(trace.junctions)) continue
-    for (const junction of trace.junctions) {
-      const point = asPoint(junction)
-      if (!point) continue
-      const location = transform(point)
-      const key = `${location.x}:${location.y}`
-      if (emittedJunctions.has(key)) continue
-      emittedJunctions.add(key)
-      addRecord([
-        "RECORD=29",
-        `LOCATION.X=${location.x}`,
-        `LOCATION.Y=${location.y}`,
-        "COLOR=34816",
-      ])
+    if (!Array.isArray(schematicTrace.junctions)) continue
+    for (const junction of schematicTrace.junctions) {
+      const circuitJunctionPoint = asPoint(junction)
+      if (!circuitJunctionPoint) continue
+      const altiumJunctionPoint =
+        circuitToAltiumSchematicPoint(circuitJunctionPoint)
+      const altiumJunctionPointKey = `${altiumJunctionPoint.x}:${altiumJunctionPoint.y}`
+      if (emittedJunctions.has(altiumJunctionPointKey)) continue
+      emittedJunctions.add(altiumJunctionPointKey)
+      addSchematicRecord(
+        [
+          "RECORD=29",
+          `LOCATION.X=${altiumJunctionPoint.x}`,
+          `LOCATION.Y=${altiumJunctionPoint.y}`,
+          "COLOR=34816",
+        ],
+        schematicRecordContext,
+      )
     }
   }
 
-  for (const label of schematicElements.filter(
+  for (const schematicNetLabel of schematicElements.filter(
     (element) => element.type === "schematic_net_label",
   )) {
-    const text = sanitizeField(label.text)
-    if (!text) continue
-    const center = transform(
-      asPoint(label.anchor_position) ?? asPoint(label.center) ?? { x: 0, y: 0 },
+    const labelText = sanitizeField(schematicNetLabel.text)
+    if (!labelText) continue
+    const altiumLabelPosition = circuitToAltiumSchematicPoint(
+      asPoint(schematicNetLabel.anchor_position) ??
+        asPoint(schematicNetLabel.center) ?? { x: 0, y: 0 },
     )
-    addRecord([
-      "RECORD=25",
-      `LOCATION.X=${center.x}`,
-      `LOCATION.Y=${center.y}`,
-      "FONTID=2",
-      "ORIENTATION=0",
-      "JUSTIFICATION=0",
-      `TEXT=${text}`,
-    ])
+    addSchematicRecord(
+      [
+        "RECORD=25",
+        `LOCATION.X=${altiumLabelPosition.x}`,
+        `LOCATION.Y=${altiumLabelPosition.y}`,
+        "FONTID=2",
+        "ORIENTATION=0",
+        "JUSTIFICATION=0",
+        `TEXT=${labelText}`,
+      ],
+      schematicRecordContext,
+    )
   }
 
-  return `${lines.join("\r\n")}\r\n`
+  return `${schematicRecordContext.lines.join("\r\n")}\r\n`
 }

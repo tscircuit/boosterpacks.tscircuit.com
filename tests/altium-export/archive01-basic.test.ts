@@ -16,15 +16,23 @@ test("creates a parseable project with a connected PCB and schematic", async () 
   const elements: CircuitElement[] = [
     board(),
     sourceComponent("sc1", "R1"),
-    sourcePort("sp1", "sc1", 1),
+    sourcePort({
+      sourcePortId: "sp1",
+      sourceComponentId: "sc1",
+      pinNumber: 1,
+    }),
     {
       type: "source_trace",
       source_trace_id: "st1",
       connected_source_port_ids: ["sp1"],
       name: "SIGNAL",
     },
-    pcbComponent("pc1", "sc1"),
-    pcbPort("pp1", "sp1", "pc1"),
+    pcbComponent({ pcbComponentId: "pc1", sourceComponentId: "sc1" }),
+    pcbPort({
+      pcbPortId: "pp1",
+      sourcePortId: "sp1",
+      pcbComponentId: "pc1",
+    }),
     {
       type: "pcb_smtpad",
       pcb_smtpad_id: "pad1",
