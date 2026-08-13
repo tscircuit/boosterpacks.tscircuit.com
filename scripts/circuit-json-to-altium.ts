@@ -48,6 +48,15 @@ const formatMil = (value: number) => `${formatNumber(value)}mil`
 const byType = (circuitJson: CircuitElement[], type: string) =>
   circuitJson.filter((element) => element.type === type)
 
+const ensureClockwise = (points: Point[]) => {
+  const signedArea = points.reduce((area, point, index) => {
+    const next = points[(index + 1) % points.length] as Point
+    return area + point.x * next.y - next.x * point.y
+  }, 0)
+
+  return signedArea > 0 ? [...points].reverse() : points
+}
+
 const getBoardOutline = (board: CircuitElement | undefined): Point[] => {
   const explicitOutline = Array.isArray(board?.outline)
     ? board.outline
@@ -55,17 +64,17 @@ const getBoardOutline = (board: CircuitElement | undefined): Point[] => {
         .filter((point): point is Point => Boolean(point))
     : []
 
-  if (explicitOutline.length >= 3) return explicitOutline
+  if (explicitOutline.length >= 3) return ensureClockwise(explicitOutline)
 
   const center = asPoint(board?.center) ?? { x: 0, y: 0 }
   const width = asNumber(board?.width, 100)
   const height = asNumber(board?.height, 80)
-  return [
+  return ensureClockwise([
     { x: center.x - width / 2, y: center.y - height / 2 },
     { x: center.x + width / 2, y: center.y - height / 2 },
     { x: center.x + width / 2, y: center.y + height / 2 },
     { x: center.x - width / 2, y: center.y + height / 2 },
-  ]
+  ])
 }
 
 const createPcbDocument = (circuitJson: CircuitElement[]) => {

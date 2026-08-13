@@ -147,6 +147,13 @@ test("creates a parseable native-binary Altium project archive", async () => {
   expect(parsedPcb.getRecordsByKind("Track")).toHaveLength(1)
   expect(parsedPcb.getRecordsByKind("Via")).toHaveLength(1)
   expect(parsedPcb.boardGeometry.outline?.points).toHaveLength(5)
+  expect(parsedPcb.boardGeometry.outline?.winding).toBe("clockwise")
+  expect(parsedPcb.boardGeometry.outline?.bounds).toEqual({
+    minX: 1_000,
+    minY: 1_000,
+    maxX: 1_787.4016,
+    maxY: 1_472.4409,
+  })
   expect(
     parseAltiumSchDoc(schematic ?? new Uint8Array()).components,
   ).toHaveLength(1)
