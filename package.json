@@ -26,8 +26,7 @@
     "@tscircuit/alphabet": "^0.0.25",
     "poppygl": "^0.0.27",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "transformation-matrix": "^3.1.0"
+    "react-dom": "^19.2.8"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.8",
@@ -35,7 +34,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
-    "altiumts": "github:tscircuit/altiumts#043a6e90be8106ad3e0319ba2797d0a0a464f73a",
+    "circuit-json-to-altium": "github:tscircuit/circuit-json-to-altium#b7027586888496a21c8531fffd2f871068d5f64d",
     "jszip": "^3.10.1",
     "react-cosmos": "^7.3.0",
     "react-cosmos-plugin-vite": "^7.3.0",

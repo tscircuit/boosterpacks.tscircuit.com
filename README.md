@@ -55,10 +55,14 @@ bun run format:check
 bun run build:site
 ```
 
-The `altiumts` dependency may be pinned to an immutable Git commit while a
-required upstream change is awaiting release. It is trusted so Bun can build
-that source dependency during installation; return to a released version once
-the pinned commit is published.
+The Altium exporter is pinned to an immutable
+[`circuit-json-to-altium`](https://github.com/tscircuit/circuit-json-to-altium/pull/1)
+Git commit while the package bootstrap is awaiting release. That package in
+turn pins the required
+[`altiumts` native-binary work](https://github.com/tscircuit/altiumts/pull/43).
+`altiumts` remains trusted so Bun can build the transitive source dependency
+during installation; return both pins to released package versions once those
+changes are published.
 
 `bun run start` opens the React Cosmos fixtures used to develop the index and
 detail page components in isolation. The full production command is
