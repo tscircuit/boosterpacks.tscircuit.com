@@ -3,6 +3,12 @@ import {
   parseAltiumPrjPcb,
   parseAltiumSchDoc,
 } from "altiumts"
+import {
+  convertSoupToExcellonDrillCommands,
+  convertSoupToGerberCommands,
+  stringifyExcellonDrill,
+  stringifyGerberCommandLayers,
+} from "circuit-json-to-gerber"
 import JSZip from "jszip"
 
 type CircuitElement = Record<string, unknown> & { type?: string }
@@ -558,6 +564,39 @@ const createSchematicDocument = (
   return `${lines.join("\r\n")}\r\n`
 }
 
+const addViewerCompatibleManufacturingFiles = (
+  zip: JSZip,
+  circuitJson: CircuitElement[],
+) => {
+  const gerberCircuitJson = circuitJson as Parameters<
+    typeof convertSoupToGerberCommands
+  >[0]
+  const gerberLayers = stringifyGerberCommandLayers(
+    convertSoupToGerberCommands(gerberCircuitJson, { flip_y_axis: false }),
+  )
+
+  for (const [filename, content] of Object.entries(gerberLayers)) {
+    zip.file(`manufacturing/${filename}.gbr`, content)
+  }
+
+  for (const { filename, isPlated } of [
+    { filename: "drill.drl", isPlated: true },
+    { filename: "drill_npth.drl", isPlated: false },
+  ]) {
+    const drillCommands = convertSoupToExcellonDrillCommands({
+      circuitJson: gerberCircuitJson,
+      is_plated: isPlated,
+      flip_y_axis: false,
+    })
+    if (drillCommands.length > 0) {
+      zip.file(
+        `manufacturing/${filename}`,
+        stringifyExcellonDrill(drillCommands),
+      )
+    }
+  }
+}
+
 export async function convertCircuitJsonToAltiumZip(
   circuitJson: CircuitElement[],
   projectName: string,
@@ -614,6 +653,7 @@ export async function convertCircuitJsonToAltiumZip(
   for (const schematic of schematicFiles) {
     zip.file(schematic.filename, schematic.content)
   }
+  addViewerCompatibleManufacturingFiles(zip, circuitJson)
   zip.file(
     "README.txt",
     [
@@ -621,6 +661,7 @@ export async function convertCircuitJsonToAltiumZip(
       "",
       "Generated in advance from the board's routed Circuit JSON.",
       `Open ${projectFilename} in Altium Designer.`,
+      "The manufacturing directory contains Gerber and drill files for Altium 365 Viewer compatibility.",
     ].join("\r\n"),
   )
 

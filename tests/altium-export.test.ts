@@ -7,7 +7,7 @@ import {
 import JSZip from "jszip"
 import { convertCircuitJsonToAltiumZip } from "../scripts/circuit-json-to-altium"
 
-test("creates a parseable Altium project archive", async () => {
+test("creates a parseable Altium project archive with viewer-compatible manufacturing files", async () => {
   const archive = await convertCircuitJsonToAltiumZip(
     [
       {
@@ -67,6 +67,16 @@ test("creates a parseable Altium project archive", async () => {
         layer: "top",
       },
       {
+        type: "pcb_plated_hole",
+        pcb_plated_hole_id: "pcb_plated_hole_1",
+        shape: "circle",
+        x: 1,
+        y: 0,
+        outer_diameter: 1.6,
+        hole_diameter: 0.8,
+        layers: ["top", "bottom"],
+      },
+      {
         type: "schematic_component",
         schematic_component_id: "schematic_component_1",
         source_component_id: "source_component_1",
@@ -102,11 +112,19 @@ test("creates a parseable Altium project archive", async () => {
   const project = await zip.file("example-board.PrjPcb")?.async("string")
   const pcb = await zip.file("example-board.PcbDoc")?.async("string")
   const schematic = await zip.file("example-board.SchDoc")?.async("string")
+  const topCopper = await zip.file("manufacturing/F_Cu.gbr")?.async("string")
+  const boardProfile = await zip
+    .file("manufacturing/Edge_Cuts.gbr")
+    ?.async("string")
+  const platedDrill = await zip.file("manufacturing/drill.drl")?.async("string")
 
   expect(project).toBeDefined()
   expect(pcb).toBeDefined()
   expect(schematic).toBeDefined()
   expect(parseAltiumPrjPcb(project ?? "").documents).toHaveLength(2)
-  expect(parseAltiumPcbDoc(pcb ?? "").getRecordsByKind("Pad")).toHaveLength(1)
+  expect(parseAltiumPcbDoc(pcb ?? "").getRecordsByKind("Pad")).toHaveLength(2)
   expect(parseAltiumSchDoc(schematic ?? "").components).toHaveLength(1)
+  expect(topCopper).toContain("%TF.FileFunction,Copper,L1,Top*%")
+  expect(boardProfile).toContain("%TF.FileFunction,Profile,NP*%")
+  expect(platedDrill).toStartWith("M48")
 })
