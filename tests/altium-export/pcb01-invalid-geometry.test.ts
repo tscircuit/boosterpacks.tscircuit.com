@@ -31,7 +31,6 @@ test("falls back to a finite rectangular board for invalid geometry", async () =
     }),
   ])
 
-  expect(result.pcbSource).not.toMatch(/NaN|Infinity/u)
   expect(result.pcb.board?.outline.points).toHaveLength(5)
   expect(result.pcb.boardGeometry.outline.bounds).toEqual({
     minX: 1000,

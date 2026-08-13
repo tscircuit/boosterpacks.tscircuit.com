@@ -85,7 +85,9 @@ test("preserves symbols, pins, wires, labels, and unique junctions", async () =>
     owned.find((record) => record.get("NAME") === "Designator")?.get("TEXT"),
   ).toBe("R 1 MAIN")
   expect(
-    owned.find((record) => record.get("NAME") === "Comment")?.get("TEXT"),
+    owned
+      .find((record) => record.get("NAME") === "Comment")
+      ?.getDecoded("TEXT"),
   ).toBe("10k Ω")
   const label = schematic.netLabels[0]
   const wireEnd = schematic.wires[1]

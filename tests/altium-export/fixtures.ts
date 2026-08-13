@@ -1,9 +1,9 @@
 import { expect } from "bun:test"
 import {
-  type AltiumPcbDoc,
+  type AltiumPcbDocument,
   type AltiumSchDoc,
   getDanglingPcbReferences,
-  parseAltiumPcbDoc,
+  parseAltiumBinaryPcbDoc,
   parseAltiumPrjPcb,
   parseAltiumSchDoc,
   validateAltiumDocument,
@@ -106,23 +106,23 @@ export const extractArchive = async (
     throw new Error(`Incomplete Altium archive: ${filenames.join(", ")}`)
   }
   const projectSource = await zip.file(projectFilename)?.async("string")
-  const pcbSource = await zip.file(pcbFilename)?.async("string")
-  if (!projectSource || !pcbSource) throw new Error("Unreadable Altium archive")
+  const pcbBytes = await zip.file(pcbFilename)?.async("uint8array")
+  if (!projectSource || !pcbBytes) throw new Error("Unreadable Altium archive")
   const project = parseAltiumPrjPcb(projectSource)
-  const pcb = parseAltiumPcbDoc(pcbSource, { mode: "strict" })
+  const pcb = parseAltiumBinaryPcbDoc(pcbBytes)
   const schematicSources = await Promise.all(
     schematicFilenames.map(async (filename) => {
-      const source = await zip.file(filename)?.async("string")
-      if (!source) throw new Error(`Unreadable schematic ${filename}`)
-      return { filename, source }
+      const bytes = await zip.file(filename)?.async("uint8array")
+      if (!bytes) throw new Error(`Unreadable schematic ${filename}`)
+      return { filename, bytes }
     }),
   )
-  const schematics = schematicSources.map(({ source }) =>
-    parseAltiumSchDoc(source),
+  const schematics = schematicSources.map(({ bytes }) =>
+    parseAltiumSchDoc(bytes),
   )
   return {
     filenames,
-    pcbSource,
+    pcbBytes,
     project,
     projectFilename,
     schematicSources,
@@ -132,7 +132,7 @@ export const extractArchive = async (
   }
 }
 
-export const expectValidPcb = (pcb: AltiumPcbDoc) => {
+export const expectValidPcb = (pcb: AltiumPcbDocument) => {
   expect(validateAltiumDocument(pcb, { profile: "strict" }).valid).toBe(true)
   expect(getDanglingPcbReferences(pcb)).toEqual([])
 }

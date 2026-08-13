@@ -35,7 +35,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
-    "altiumts": "github:tscircuit/altiumts#40ccb214960a34c5c6e17434bb4718b1c93755e2",
+    "altiumts": "github:tscircuit/altiumts#043a6e90be8106ad3e0319ba2797d0a0a464f73a",
     "jszip": "^3.10.1",
     "react-cosmos": "^7.3.0",
     "react-cosmos-plugin-vite": "^7.3.0",

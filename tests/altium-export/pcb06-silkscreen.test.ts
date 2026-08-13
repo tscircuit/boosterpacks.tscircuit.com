@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test"
+import { AltiumTextRecord } from "altiumts"
 import {
   type CircuitElement,
   board,
@@ -46,9 +47,13 @@ test("exports top and bottom silkscreen paths and text", async () => {
     true,
   )
   expect(silkTracks.every((track) => track.get("COMPONENT") === "0")).toBe(true)
-  expect(text?.get("LAYER")).toBe("BOTTOMOVERLAY")
-  expect(text?.get("MIRROR")).toBe("TRUE")
-  expect(text?.get("TEXT")).toBe("U1 BOTTOM LABEL")
-  expect(text?.get("ROTATION")).toBe("90")
+  expect(text).toBeInstanceOf(AltiumTextRecord)
+  if (!(text instanceof AltiumTextRecord)) {
+    throw new Error("Expected a typed Altium text record")
+  }
+  expect(text.get("LAYER")).toBe("BOTTOMOVERLAY")
+  expect(text.get("MIRROR")).toBe("TRUE")
+  expect(text.text).toBe("U1 BOTTOM LABEL")
+  expect(text.get("ROTATION")).toBe("90")
   expectValidPcb(pcb)
 })

@@ -79,6 +79,20 @@ test("creates a parseable project with a connected PCB and schematic", async () 
     "example-board.PrjPcb",
     "example-board.SchDoc",
   ])
+  const compoundFileMagic = Uint8Array.of(
+    0xd0,
+    0xcf,
+    0x11,
+    0xe0,
+    0xa1,
+    0xb1,
+    0x1a,
+    0xe1,
+  )
+  expect(result.pcbBytes.slice(0, 8)).toEqual(compoundFileMagic)
+  expect(result.schematicSources[0]?.bytes.slice(0, 8)).toEqual(
+    compoundFileMagic,
+  )
   expect(result.project.documents).toHaveLength(2)
   expect(result.pcb.components[0]?.get("SOURCEDESIGNATOR")).toBe("R1")
   expect(result.pcb.getRecordsByKind("Pad")).toHaveLength(1)
