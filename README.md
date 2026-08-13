@@ -55,6 +55,11 @@ bun run format:check
 bun run build:site
 ```
 
+The `altiumts` dependency may be pinned to an immutable Git commit while a
+required upstream change is awaiting release. It is trusted so Bun can build
+that source dependency during installation; return to a released version once
+the pinned commit is published.
+
 `bun run start` opens the React Cosmos fixtures used to develop the index and
 detail page components in isolation. The full production command is
 `bun run build`.
