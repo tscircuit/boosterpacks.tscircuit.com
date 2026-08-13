@@ -119,7 +119,9 @@ async function addHierarchicalSchematicsToKicadZip(
         (typeof b.sheet_index === "number" ? b.sheet_index : 0),
     )
   if (sheets.length === 0) return
-  const zip = await JSZip.loadAsync(await readFile(kicadZipPath))
+  const zip = await JSZip.loadAsync(
+    new Uint8Array(await readFile(kicadZipPath)),
+  )
   const rootSchematic = await zip
     .file("board.circuit.kicad_sch")
     ?.async("string")
@@ -168,7 +170,10 @@ async function addHierarchicalSchematicsToKicadZip(
       ],
       outputDir,
     )
-    zip.file(outputFilename, await readFile(join(outputDir, outputFilename)))
+    zip.file(
+      outputFilename,
+      new Uint8Array(await readFile(join(outputDir, outputFilename))),
+    )
     await Promise.all([
       rm(join(outputDir, inputFilename), { force: true }),
       rm(join(outputDir, outputFilename), { force: true }),

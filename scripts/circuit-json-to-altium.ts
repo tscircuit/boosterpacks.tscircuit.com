@@ -1,9 +1,14 @@
 import {
+  parseAltiumBinaryPcbDoc,
   parseAltiumPcbDoc,
   parseAltiumPrjPcb,
   parseAltiumSchDoc,
 } from "altiumts"
 import JSZip from "jszip"
+import {
+  createBinaryPcbDocument,
+  createBinarySchematicDocument,
+} from "./altium-binary"
 
 type CircuitElement = Record<string, unknown> & { type?: string }
 type Point = { x: number; y: number }
@@ -564,7 +569,8 @@ export async function convertCircuitJsonToAltiumZip(
 ): Promise<Uint8Array> {
   const safeProjectName = sanitizeFilename(projectName)
   const pcbFilename = `${safeProjectName}.PcbDoc`
-  const pcbDocument = createPcbDocument(circuitJson)
+  const pcbAsciiDocument = createPcbDocument(circuitJson)
+  const pcbDocument = createBinaryPcbDocument(pcbAsciiDocument)
   const sheets = byType(circuitJson, "schematic_sheet").sort(
     (a, b) => asNumber(a.sheet_index) - asNumber(b.sheet_index),
   )
@@ -574,13 +580,14 @@ export async function convertCircuitJsonToAltiumZip(
       sheetDefinitions.length > 1
         ? `-${String(index + 1).padStart(2, "0")}`
         : ""
+    const asciiContent = createSchematicDocument(
+      circuitJson,
+      sheet ? asString(sheet.schematic_sheet_id) : undefined,
+      index === 0,
+    )
     return {
       filename: `${safeProjectName}${suffix}.SchDoc`,
-      content: createSchematicDocument(
-        circuitJson,
-        sheet ? asString(sheet.schematic_sheet_id) : undefined,
-        index === 0,
-      ),
+      content: createBinarySchematicDocument(asciiContent),
     }
   })
   const projectFilename = `${safeProjectName}.PrjPcb`
@@ -602,7 +609,8 @@ export async function convertCircuitJsonToAltiumZip(
     ]),
   ].join("\r\n")
 
-  parseAltiumPcbDoc(pcbDocument, { mode: "strict" })
+  parseAltiumPcbDoc(pcbAsciiDocument, { mode: "strict" })
+  parseAltiumBinaryPcbDoc(pcbDocument)
   for (const schematic of schematicFiles) {
     parseAltiumSchDoc(schematic.content)
   }
@@ -621,6 +629,7 @@ export async function convertCircuitJsonToAltiumZip(
       "",
       "Generated in advance from the board's routed Circuit JSON.",
       `Open ${projectFilename} in Altium Designer.`,
+      "PCB and schematic documents use Altium's native binary compound-file format.",
     ].join("\r\n"),
   )
 
