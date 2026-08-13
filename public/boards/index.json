@@ -1,6 +1,6 @@
 {
   "sourceRepository": "https://github.com/tscircuit/boosters",
-  "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+  "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
   "boards": [
     {
       "slug": "boost-drv8711",
@@ -12,7 +12,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boost-drv8711",
-      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
       "assets": {
         "glb": "/boards/boost-drv8711/board.glb",
         "thumbnail": "/boards/boost-drv8711/thumbnail.png",
@@ -32,7 +32,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boost-drv8848",
-      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
       "assets": {
         "glb": "/boards/boost-drv8848/board.glb",
         "thumbnail": "/boards/boost-drv8848/thumbnail.png",
@@ -50,7 +50,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-ads1119",
-      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
       "assets": {
         "glb": "/boards/boostxl-ads1119/board.glb",
         "thumbnail": "/boards/boostxl-ads1119/thumbnail.png",
@@ -68,7 +68,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-ads7841-q1",
-      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
       "assets": {
         "glb": "/boards/boostxl-ads7841-q1/board.glb",
         "thumbnail": "/boards/boostxl-ads7841-q1/thumbnail.png",
@@ -86,7 +86,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-audio",
-      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
       "assets": {
         "glb": "/boards/boostxl-audio/board.glb",
         "thumbnail": "/boards/boostxl-audio/thumbnail.png",
@@ -97,6 +97,25 @@
       }
     },
     {
+      "slug": "boostxl-bassensors",
+      "name": "BOOSTXL-BASSENSORS building-automation sensor BoosterPack",
+      "description": "Native tscircuit reconstruction of Texas Instruments' BOOSTXL-BASSENSORS Building Automation Sensors BoosterPack.",
+      "tags": [
+        "sensors",
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-bassensors",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
+      "assets": {
+        "glb": "/boards/boostxl-bassensors/board.glb",
+        "thumbnail": "/boards/boostxl-bassensors/thumbnail.png",
+        "pcbSvg": "/boards/boostxl-bassensors/pcb.svg",
+        "kicadZip": "/boards/boostxl-bassensors/kicad.zip",
+        "altiumZip": "/boards/boostxl-bassensors/altium.zip",
+        "schematicPdf": "/boards/boostxl-bassensors/schematic.pdf"
+      }
+    },
+    {
       "slug": "boostxl-cc2650ma",
       "name": "BOOSTXL-CC2650MA tscircuit reconstruction",
       "description": "This directory reconstructs Texas Instruments' BOOSTXL-CC2650MA CC2650 module BoosterPack in tscircuit. The electrical design follows the Rev 1.0.1 schematic and expanded Allegro netlist in TI's official SWRC324 design package.",
@@ -104,7 +123,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-cc2650ma",
-      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
       "assets": {
         "glb": "/boards/boostxl-cc2650ma/board.glb",
         "thumbnail": "/boards/boostxl-cc2650ma/thumbnail.png",
@@ -123,7 +142,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-drv8305evm",
-      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
       "assets": {
         "glb": "/boards/boostxl-drv8305evm/board.glb",
         "thumbnail": "/boards/boostxl-drv8305evm/thumbnail.png",
@@ -144,7 +163,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-edumkii",
-      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
       "assets": {
         "glb": "/boards/boostxl-edumkii/board.glb",
         "thumbnail": "/boards/boostxl-edumkii/thumbnail.png",
@@ -163,7 +182,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-tlv8544pir",
-      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
       "assets": {
         "glb": "/boards/boostxl-tlv8544pir/board.glb",
         "thumbnail": "/boards/boostxl-tlv8544pir/thumbnail.png",
@@ -183,7 +202,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-tmp107",
-      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
       "assets": {
         "glb": "/boards/boostxl-tmp107/board.glb",
         "thumbnail": "/boards/boostxl-tmp107/thumbnail.png",
@@ -203,7 +222,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-uln2003",
-      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
       "assets": {
         "glb": "/boards/boostxl-uln2003/board.glb",
         "thumbnail": "/boards/boostxl-uln2003/thumbnail.png",
@@ -211,6 +230,25 @@
         "kicadZip": "/boards/boostxl-uln2003/kicad.zip",
         "altiumZip": "/boards/boostxl-uln2003/altium.zip",
         "schematicPdf": "/boards/boostxl-uln2003/schematic.pdf"
+      }
+    },
+    {
+      "slug": "tida-00647",
+      "name": "TIDA-00647 ADS1220 RTD BoosterPack",
+      "description": "A two-layer tscircuit implementation of Texas Instruments' TIDA-00647 reference design. The board uses the ADS1220 24-bit delta-sigma ADC to connect two-, three-, or four-wire resistance temperature detectors to a compatible LaunchPad through SPI.",
+      "tags": [
+        "temperature",
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/tida-00647",
+      "sourceCommit": "a48971d089c74ffcaaecccd7ac2f714089bacbd5",
+      "assets": {
+        "glb": "/boards/tida-00647/board.glb",
+        "thumbnail": "/boards/tida-00647/thumbnail.png",
+        "pcbSvg": "/boards/tida-00647/pcb.svg",
+        "kicadZip": "/boards/tida-00647/kicad.zip",
+        "altiumZip": "/boards/tida-00647/altium.zip",
+        "schematicPdf": "/boards/tida-00647/schematic.pdf"
       }
     }
   ]
