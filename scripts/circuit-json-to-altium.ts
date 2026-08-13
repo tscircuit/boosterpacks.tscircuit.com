@@ -9,9 +9,16 @@ type CircuitElement = Record<string, unknown> & { type?: string }
 type Point = { x: number; y: number }
 
 const MILLIMETERS_TO_MILS = 39.3700787402
+const DEFAULT_BOARD_WIDTH_MM = 100
+const DEFAULT_BOARD_HEIGHT_MM = 80
 
 const asNumber = (value: unknown, fallback = 0) =>
   typeof value === "number" && Number.isFinite(value) ? value : fallback
+
+const asPositiveNumber = (value: unknown, fallback: number) => {
+  const number = asNumber(value, fallback)
+  return number > 0 ? number : fallback
+}
 
 const asString = (value: unknown, fallback = "") =>
   typeof value === "string" ? value : fallback
@@ -19,19 +26,44 @@ const asString = (value: unknown, fallback = "") =>
 const asPoint = (value: unknown): Point | undefined => {
   if (!value || typeof value !== "object") return undefined
   const point = value as Record<string, unknown>
-  if (typeof point.x !== "number" || typeof point.y !== "number") {
+  if (
+    typeof point.x !== "number" ||
+    !Number.isFinite(point.x) ||
+    typeof point.y !== "number" ||
+    !Number.isFinite(point.y)
+  ) {
     return undefined
   }
   return { x: point.x, y: point.y }
 }
 
-const sanitizeField = (value: unknown) =>
-  (typeof value === "number" ? String(value) : asString(value))
-    .replace(/[|\r\n]+/gu, " ")
+const sanitizeField = (value: unknown) => {
+  const rawValue =
+    typeof value === "number" && Number.isFinite(value)
+      ? String(value)
+      : asString(value)
+  return [...rawValue]
+    .map((character) => {
+      const characterCode = character.charCodeAt(0)
+      return character === "|" || characterCode < 32 || characterCode === 127
+        ? " "
+        : character
+    })
+    .join("")
     .trim()
+}
 
-const sanitizeFilename = (value: string) =>
-  value.replace(/[^a-z0-9._-]+/giu, "-").replace(/^-+|-+$/gu, "") || "board"
+const sanitizeFilename = (value: string) => {
+  const sanitized = value
+    .replace(/[^a-z0-9._-]+/giu, "-")
+    .replace(/^[.-]+|[.-]+$/gu, "")
+    .slice(0, 80)
+  if (!sanitized) return "board"
+  if (/^(?:aux|con|nul|prn|com[1-9]|lpt[1-9])$/iu.test(sanitized)) {
+    return `board-${sanitized}`
+  }
+  return sanitized
+}
 
 const formatNumber = (value: number) => {
   const rounded = Math.round(value * 10_000) / 10_000
@@ -43,24 +75,163 @@ const formatMil = (value: number) => `${formatNumber(value)}mil`
 const byType = (circuitJson: CircuitElement[], type: string) =>
   circuitJson.filter((element) => element.type === type)
 
-const getBoardOutline = (board: CircuitElement | undefined): Point[] => {
-  const explicitOutline = Array.isArray(board?.outline)
-    ? board.outline
-        .map(asPoint)
-        .filter((point): point is Point => Boolean(point))
-    : []
+const pointsEqual = (left: Point, right: Point) =>
+  Math.abs(left.x - right.x) < 1e-9 && Math.abs(left.y - right.y) < 1e-9
 
-  if (explicitOutline.length >= 3) return explicitOutline
+const getPolygonArea = (points: Point[]) =>
+  Math.abs(
+    points.reduce((area, point, index) => {
+      const next = points[(index + 1) % points.length] as Point
+      return area + point.x * next.y - next.x * point.y
+    }, 0) / 2,
+  )
+
+const getBoardOutline = (board: CircuitElement | undefined): Point[] => {
+  const parsedOutline = Array.isArray(board?.outline)
+    ? board.outline.map(asPoint)
+    : []
+  const explicitOutline = parsedOutline.filter((point): point is Point =>
+    Boolean(point),
+  )
+  const hasOnlyValidOutlinePoints =
+    explicitOutline.length === parsedOutline.length
+  if (
+    explicitOutline.length > 1 &&
+    pointsEqual(explicitOutline[0] as Point, explicitOutline.at(-1) as Point)
+  ) {
+    explicitOutline.pop()
+  }
+
+  if (
+    hasOnlyValidOutlinePoints &&
+    explicitOutline.length >= 3 &&
+    getPolygonArea(explicitOutline) > 1e-9
+  ) {
+    return explicitOutline
+  }
 
   const center = asPoint(board?.center) ?? { x: 0, y: 0 }
-  const width = asNumber(board?.width, 100)
-  const height = asNumber(board?.height, 80)
+  const width = asPositiveNumber(board?.width, DEFAULT_BOARD_WIDTH_MM)
+  const height = asPositiveNumber(board?.height, DEFAULT_BOARD_HEIGHT_MM)
   return [
     { x: center.x - width / 2, y: center.y - height / 2 },
     { x: center.x + width / 2, y: center.y - height / 2 },
     { x: center.x + width / 2, y: center.y + height / 2 },
     { x: center.x - width / 2, y: center.y + height / 2 },
   ]
+}
+
+type PcbNetEntry = {
+  index: number
+  name: string
+  sourcePortIds: string[]
+  traceIds: string[]
+}
+
+const createPcbNetEntries = (circuitJson: CircuitElement[]): PcbNetEntry[] => {
+  const sourceNets = new Map(
+    byType(circuitJson, "source_net").map((net) => [
+      asString(net.source_net_id),
+      sanitizeField(net.name) || asString(net.source_net_id),
+    ]),
+  )
+  const sourceTraces = byType(circuitJson, "source_trace")
+  const parents = sourceTraces.map((_, index) => index)
+  const find = (index: number): number => {
+    let root = index
+    while (parents[root] !== root) root = parents[root] as number
+    while (parents[index] !== index) {
+      const next = parents[index] as number
+      parents[index] = root
+      index = next
+    }
+    return root
+  }
+  const union = (left: number, right: number) => {
+    const leftRoot = find(left)
+    const rightRoot = find(right)
+    if (leftRoot === rightRoot) return
+    const root = Math.min(leftRoot, rightRoot)
+    parents[leftRoot] = root
+    parents[rightRoot] = root
+  }
+  const firstTraceByPort = new Map<string, number>()
+  const firstTraceByNet = new Map<string, number>()
+  for (const [traceIndex, trace] of sourceTraces.entries()) {
+    const portIds = Array.isArray(trace.connected_source_port_ids)
+      ? trace.connected_source_port_ids.map((value) => asString(value))
+      : []
+    const netIds = Array.isArray(trace.connected_source_net_ids)
+      ? trace.connected_source_net_ids.map((value) => asString(value))
+      : []
+    for (const [id, firstById] of [
+      ...portIds.map((id) => [id, firstTraceByPort] as const),
+      ...netIds.map((id) => [id, firstTraceByNet] as const),
+    ]) {
+      if (!id) continue
+      const firstTrace = firstById.get(id)
+      if (firstTrace === undefined) firstById.set(id, traceIndex)
+      else union(firstTrace, traceIndex)
+    }
+  }
+
+  const traceIndexesByRoot = new Map<number, number[]>()
+  for (const traceIndex of sourceTraces.keys()) {
+    const root = find(traceIndex)
+    traceIndexesByRoot.set(root, [
+      ...(traceIndexesByRoot.get(root) ?? []),
+      traceIndex,
+    ])
+  }
+  const usedNames = new Map<string, number>()
+  return [...traceIndexesByRoot.values()].map((traceIndexes, index) => {
+    const traces = traceIndexes.map(
+      (traceIndex) => sourceTraces[traceIndex] as CircuitElement,
+    )
+    const sourceNetIds = [
+      ...new Set(
+        traces.flatMap((trace) =>
+          Array.isArray(trace.connected_source_net_ids)
+            ? trace.connected_source_net_ids
+                .map((value) => asString(value))
+                .filter(Boolean)
+            : [],
+        ),
+      ),
+    ]
+    const sourcePortIds = [
+      ...new Set(
+        traces.flatMap((trace) =>
+          Array.isArray(trace.connected_source_port_ids)
+            ? trace.connected_source_port_ids
+                .map((value) => asString(value))
+                .filter(Boolean)
+            : [],
+        ),
+      ),
+    ]
+    const baseName =
+      sourceNetIds.map((id) => sourceNets.get(id)).find(Boolean) ||
+      traces
+        .map(
+          (trace) =>
+            sanitizeField(trace.name) || sanitizeField(trace.display_name),
+        )
+        .find(Boolean) ||
+      `Net-${index + 1}`
+    const nameCount = (usedNames.get(baseName) ?? 0) + 1
+    usedNames.set(baseName, nameCount)
+    return {
+      index,
+      name: nameCount === 1 ? baseName : `${baseName}-${nameCount}`,
+      sourcePortIds,
+      traceIds: traces.map(
+        (trace, traceOffset) =>
+          asString(trace.source_trace_id) ||
+          `source_trace_${traceIndexes[traceOffset]}`,
+      ),
+    }
+  })
 }
 
 const createPcbDocument = (circuitJson: CircuitElement[]) => {
@@ -91,8 +262,7 @@ const createPcbDocument = (circuitJson: CircuitElement[]) => {
   ]
 
   const sourceComponents = new Map(
-    circuitJson
-      .filter((element) => element.type?.startsWith("source_") === true)
+    byType(circuitJson, "source_component")
       .filter((element) => typeof element.source_component_id === "string")
       .map((element) => [asString(element.source_component_id), element]),
   )
@@ -108,32 +278,12 @@ const createPcbDocument = (circuitJson: CircuitElement[]) => {
       port,
     ]),
   )
-  const sourceNets = new Map(
-    byType(circuitJson, "source_net").map((net) => [
-      asString(net.source_net_id),
-      sanitizeField(net.name) || asString(net.source_net_id),
-    ]),
+  const netEntries = createPcbNetEntries(circuitJson)
+  const netByTraceId = new Map(
+    netEntries.flatMap((net) =>
+      net.traceIds.map((traceId) => [traceId, net] as const),
+    ),
   )
-  const sourceTraces = byType(circuitJson, "source_trace")
-  const netEntries = sourceTraces.map((trace, index) => {
-    const connectedNetIds = Array.isArray(trace.connected_source_net_ids)
-      ? trace.connected_source_net_ids.map((value) => asString(value))
-      : []
-    const explicitName =
-      sanitizeField(trace.display_name) || sanitizeField(trace.name)
-    const connectedName = connectedNetIds
-      .map((id) => sourceNets.get(id))
-      .find(Boolean)
-    return {
-      id: asString(trace.source_trace_id, `source_trace_${index}`),
-      index,
-      name: explicitName || connectedName || `Net-${index + 1}`,
-      sourcePortIds: Array.isArray(trace.connected_source_port_ids)
-        ? trace.connected_source_port_ids.map((value) => asString(value))
-        : [],
-    }
-  })
-  const netByTraceId = new Map(netEntries.map((net) => [net.id, net]))
   const netBySourcePortId = new Map(
     netEntries.flatMap((net) =>
       net.sourcePortIds.map((sourcePortId) => [sourcePortId, net] as const),
@@ -149,7 +299,8 @@ const createPcbDocument = (circuitJson: CircuitElement[]) => {
   const pcbComponents = byType(circuitJson, "pcb_component")
   const componentIndex = new Map<string, number>()
   for (const [index, component] of pcbComponents.entries()) {
-    const componentId = asString(component.pcb_component_id)
+    const componentId =
+      asString(component.pcb_component_id) || `pcb_component_${index}`
     componentIndex.set(componentId, index)
     const sourceComponent = sourceComponents.get(
       asString(component.source_component_id),
@@ -157,7 +308,7 @@ const createPcbDocument = (circuitJson: CircuitElement[]) => {
     const center = transform(asPoint(component.center) ?? { x: 0, y: 0 })
     const designator =
       sanitizeField(sourceComponent?.name) || `Component-${index + 1}`
-    const pattern = `TSCIRCUIT-${formatNumber(asNumber(component.width, 1))}x${formatNumber(asNumber(component.height, 1))}mm`
+    const pattern = `TSCIRCUIT-${formatNumber(asPositiveNumber(component.width, 1))}x${formatNumber(asPositiveNumber(component.height, 1))}mm`
     const layer =
       asString(component.layer).toLowerCase() === "bottom" ? "BOTTOM" : "TOP"
     lines.push(
@@ -195,9 +346,9 @@ const createPcbDocument = (circuitJson: CircuitElement[]) => {
     const center = transform({ x: asNumber(pad.x), y: asNumber(pad.y) })
     const component = componentIndex.get(asString(pad.pcb_component_id))
     const net = getPadNet(pad)
-    const diameter = asNumber(pad.radius) * 2
-    const width = asNumber(pad.width, diameter || 1)
-    const height = asNumber(pad.height, diameter || width)
+    const diameter = asPositiveNumber(pad.radius, 0.5) * 2
+    const width = asPositiveNumber(pad.width, diameter)
+    const height = asPositiveNumber(pad.height, width)
     const shape = pad.shape === "circle" ? "ROUND" : "RECTANGLE"
     const layer =
       asString(pad.layer).toLowerCase() === "bottom" ? "BOTTOM" : "TOP"
@@ -225,16 +376,17 @@ const createPcbDocument = (circuitJson: CircuitElement[]) => {
     const center = transform({ x: asNumber(hole.x), y: asNumber(hole.y) })
     const component = componentIndex.get(asString(hole.pcb_component_id))
     const net = getPadNet(hole)
-    const outerWidth = asNumber(
+    const outerWidth = asPositiveNumber(
       hole.outer_width,
-      asNumber(hole.outer_diameter, 1.6),
+      asPositiveNumber(hole.outer_diameter, 1.6),
     )
-    const outerHeight = asNumber(hole.outer_height, outerWidth)
-    const holeWidth = asNumber(
+    const outerHeight = asPositiveNumber(hole.outer_height, outerWidth)
+    const holeWidth = asPositiveNumber(
       hole.hole_width,
-      asNumber(hole.hole_diameter, 0.8),
+      asPositiveNumber(hole.hole_diameter, 0.8),
     )
-    const holeHeight = asNumber(hole.hole_height, holeWidth)
+    const holeHeight = asPositiveNumber(hole.hole_height, holeWidth)
+    const isSlotted = Math.abs(holeWidth - holeHeight) > 1e-9
     lines.push(
       [
         "|RECORD=Pad",
@@ -245,6 +397,8 @@ const createPcbDocument = (circuitJson: CircuitElement[]) => {
         `NAME=${getPadName(hole)}`,
         `HOLESIZE=${formatMil(Math.min(holeWidth, holeHeight) * MILLIMETERS_TO_MILS)}`,
         `HOLEWIDTH=${formatMil(Math.max(holeWidth, holeHeight) * MILLIMETERS_TO_MILS)}`,
+        `HOLESHAPE=${isSlotted ? "SLOT" : "ROUND"}`,
+        `HOLEROTATION=${formatNumber(asNumber(hole.ccw_rotation))}`,
         "PLATED=TRUE",
         "LOCKED=FALSE",
         `X=${formatMil(center.x)}`,
@@ -256,10 +410,39 @@ const createPcbDocument = (circuitJson: CircuitElement[]) => {
     )
   }
 
+  for (const [holeIndex, hole] of byType(circuitJson, "pcb_hole").entries()) {
+    const center = transform({ x: asNumber(hole.x), y: asNumber(hole.y) })
+    const component = componentIndex.get(asString(hole.pcb_component_id))
+    const diameter = asPositiveNumber(hole.hole_diameter, 1)
+    const holeWidth = asPositiveNumber(hole.hole_width, diameter)
+    const holeHeight = asPositiveNumber(hole.hole_height, diameter)
+    const isSlotted = Math.abs(holeWidth - holeHeight) > 1e-9
+    lines.push(
+      [
+        "|RECORD=Pad",
+        ...(component === undefined ? [] : [`COMPONENT=${component}`]),
+        "LAYER=MULTILAYER",
+        `ROTATION=${formatNumber(asNumber(hole.ccw_rotation))}`,
+        `NAME=NPTH-${holeIndex + 1}`,
+        `HOLESIZE=${formatMil(Math.min(holeWidth, holeHeight) * MILLIMETERS_TO_MILS)}`,
+        `HOLEWIDTH=${formatMil(Math.max(holeWidth, holeHeight) * MILLIMETERS_TO_MILS)}`,
+        `HOLESHAPE=${isSlotted ? "SLOT" : "ROUND"}`,
+        `HOLEROTATION=${formatNumber(asNumber(hole.ccw_rotation))}`,
+        "PLATED=FALSE",
+        "LOCKED=FALSE",
+        `X=${formatMil(center.x)}`,
+        `Y=${formatMil(center.y)}`,
+        `SHAPE=${isSlotted ? "RECTANGLE" : "ROUND"}`,
+        `XSIZE=${formatMil(holeWidth * MILLIMETERS_TO_MILS)}`,
+        `YSIZE=${formatMil(holeHeight * MILLIMETERS_TO_MILS)}`,
+      ].join("|"),
+    )
+  }
+
   for (const trace of byType(circuitJson, "pcb_trace")) {
     const route = Array.isArray(trace.route)
       ? (trace.route as CircuitElement[]).filter(
-          (point) => typeof point.x === "number" && typeof point.y === "number",
+          (point) => asPoint(point) !== undefined,
         )
       : []
     const net = netByTraceId.get(asString(trace.source_trace_id))
@@ -272,6 +455,7 @@ const createPcbDocument = (circuitJson: CircuitElement[]) => {
         y: asNumber(start.y),
       })
       const endPoint = transform({ x: asNumber(end.x), y: asNumber(end.y) })
+      if (pointsEqual(startPoint, endPoint)) continue
       const routeLayer =
         asString(end.layer, asString(start.layer)).toLowerCase() === "bottom"
           ? "BOTTOM"
@@ -286,7 +470,7 @@ const createPcbDocument = (circuitJson: CircuitElement[]) => {
           `Y1=${formatMil(startPoint.y)}`,
           `X2=${formatMil(endPoint.x)}`,
           `Y2=${formatMil(endPoint.y)}`,
-          `WIDTH=${formatMil(asNumber(end.width, asNumber(start.width, 0.2)) * MILLIMETERS_TO_MILS)}`,
+          `WIDTH=${formatMil(asPositiveNumber(end.width, asPositiveNumber(start.width, 0.2)) * MILLIMETERS_TO_MILS)}`,
         ].join("|"),
       )
     }
@@ -310,11 +494,70 @@ const createPcbDocument = (circuitJson: CircuitElement[]) => {
         ...(net ? [`NET=${net.index}`] : []),
         `X=${formatMil(center.x)}`,
         `Y=${formatMil(center.y)}`,
-        `DIAMETER=${formatMil(asNumber(via.outer_diameter, 0.6) * MILLIMETERS_TO_MILS)}`,
-        `HOLESIZE=${formatMil(asNumber(via.hole_diameter, 0.3) * MILLIMETERS_TO_MILS)}`,
+        `DIAMETER=${formatMil(asPositiveNumber(via.outer_diameter, 0.6) * MILLIMETERS_TO_MILS)}`,
+        `HOLESIZE=${formatMil(asPositiveNumber(via.hole_diameter, 0.3) * MILLIMETERS_TO_MILS)}`,
         "STARTLAYER=TOP",
         "STOPLAYER=BOTTOM",
         "LOCKED=FALSE",
+      ].join("|"),
+    )
+  }
+
+  for (const path of byType(circuitJson, "pcb_silkscreen_path")) {
+    const route = Array.isArray(path.route)
+      ? (path.route as CircuitElement[]).filter(
+          (point) => asPoint(point) !== undefined,
+        )
+      : []
+    const component = componentIndex.get(asString(path.pcb_component_id))
+    const layer =
+      asString(path.layer).toLowerCase() === "bottom"
+        ? "BOTTOMOVERLAY"
+        : "TOPOVERLAY"
+    for (let index = 1; index < route.length; index++) {
+      const start = transform(asPoint(route[index - 1]) as Point)
+      const end = transform(asPoint(route[index]) as Point)
+      if (pointsEqual(start, end)) continue
+      lines.push(
+        [
+          "|RECORD=Track",
+          ...(component === undefined ? [] : [`COMPONENT=${component}`]),
+          `LAYER=${layer}`,
+          "LOCKED=FALSE",
+          `X1=${formatMil(start.x)}`,
+          `Y1=${formatMil(start.y)}`,
+          `X2=${formatMil(end.x)}`,
+          `Y2=${formatMil(end.y)}`,
+          `WIDTH=${formatMil(asPositiveNumber(path.stroke_width, 0.15) * MILLIMETERS_TO_MILS)}`,
+        ].join("|"),
+      )
+    }
+  }
+
+  for (const silkText of byType(circuitJson, "pcb_silkscreen_text")) {
+    const anchor =
+      asPoint(silkText.anchor_position) ??
+      asPoint(silkText.center) ??
+      ({ x: 0, y: 0 } satisfies Point)
+    const position = transform(anchor)
+    const component = componentIndex.get(asString(silkText.pcb_component_id))
+    const isBottom = asString(silkText.layer).toLowerCase() === "bottom"
+    const fontSize = asPositiveNumber(silkText.font_size, 1)
+    lines.push(
+      [
+        "|RECORD=Text",
+        ...(component === undefined ? [] : [`COMPONENT=${component}`]),
+        `LAYER=${isBottom ? "BOTTOMOVERLAY" : "TOPOVERLAY"}`,
+        `X=${formatMil(position.x)}`,
+        `Y=${formatMil(position.y)}`,
+        `ROTATION=${formatNumber(asNumber(silkText.ccw_rotation))}`,
+        `MIRROR=${isBottom ? "TRUE" : "FALSE"}`,
+        `HEIGHT=${formatMil(fontSize * MILLIMETERS_TO_MILS)}`,
+        `WIDTH=${formatMil(Math.max(0.05, fontSize * 0.1) * MILLIMETERS_TO_MILS)}`,
+        "USETTFONTS=TRUE",
+        "FONTNAME=Arial",
+        "JUSTIFICATION=4",
+        `TEXT=${sanitizeField(silkText.text)}`,
       ].join("|"),
     )
   }
@@ -327,12 +570,23 @@ const getSchematicTransform = (elements: CircuitElement[]) => {
   for (const element of elements) {
     const center = asPoint(element.center)
     if (center) points.push(center)
+    const anchor = asPoint(element.anchor_position)
+    if (anchor) points.push(anchor)
     if (element.type === "schematic_trace" && Array.isArray(element.edges)) {
       for (const edge of element.edges as CircuitElement[]) {
         const from = asPoint(edge.from)
         const to = asPoint(edge.to)
         if (from) points.push(from)
         if (to) points.push(to)
+      }
+    }
+    if (
+      element.type === "schematic_trace" &&
+      Array.isArray(element.junctions)
+    ) {
+      for (const junction of element.junctions) {
+        const point = asPoint(junction)
+        if (point) points.push(point)
       }
     }
   }
@@ -395,8 +649,7 @@ const createSchematicDocument = (
   ])
 
   const sourceComponents = new Map(
-    circuitJson
-      .filter((element) => element.type?.startsWith("source_") === true)
+    byType(circuitJson, "source_component")
       .filter((element) => typeof element.source_component_id === "string")
       .map((element) => [asString(element.source_component_id), element]),
   )
@@ -430,12 +683,13 @@ const createSchematicDocument = (
       sanitizeField(component.symbol_display_value) ||
       sanitizeField(component.symbol_name) ||
       designator
+    const libraryReference = sanitizeField(component.symbol_name) || designator
     const componentIndex = addRecord([
       "RECORD=1",
       `LOCATION.X=${center.x}`,
       `LOCATION.Y=${center.y}`,
       "ORIENTATION=0",
-      `LIBREFERENCE=${value}`,
+      `LIBREFERENCE=${libraryReference}`,
       "SHOWHIDDENPINS=F",
       "CURRENTPARTID=1",
       "ISMIRRORED=F",
@@ -540,10 +794,35 @@ const createSchematicDocument = (
     }
   }
 
+  const emittedJunctions = new Set<string>()
+  for (const trace of schematicElements.filter(
+    (element) => element.type === "schematic_trace",
+  )) {
+    if (!Array.isArray(trace.junctions)) continue
+    for (const junction of trace.junctions) {
+      const point = asPoint(junction)
+      if (!point) continue
+      const location = transform(point)
+      const key = `${location.x}:${location.y}`
+      if (emittedJunctions.has(key)) continue
+      emittedJunctions.add(key)
+      addRecord([
+        "RECORD=29",
+        `LOCATION.X=${location.x}`,
+        `LOCATION.Y=${location.y}`,
+        "COLOR=34816",
+      ])
+    }
+  }
+
   for (const label of schematicElements.filter(
     (element) => element.type === "schematic_net_label",
   )) {
-    const center = transform(asPoint(label.center) ?? { x: 0, y: 0 })
+    const text = sanitizeField(label.text)
+    if (!text) continue
+    const center = transform(
+      asPoint(label.anchor_position) ?? asPoint(label.center) ?? { x: 0, y: 0 },
+    )
     addRecord([
       "RECORD=25",
       `LOCATION.X=${center.x}`,
@@ -551,7 +830,7 @@ const createSchematicDocument = (
       "FONTID=2",
       "ORIENTATION=0",
       "JUSTIFICATION=0",
-      `TEXT=${sanitizeField(label.text)}`,
+      `TEXT=${text}`,
     ])
   }
 
