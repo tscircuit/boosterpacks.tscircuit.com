@@ -1,5 +1,125 @@
 {
   "sourceRepository": "https://github.com/tscircuit/boosters",
-  "sourceCommit": "development",
-  "boards": []
+  "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+  "boards": [
+    {
+      "slug": "boost-drv8848",
+      "name": "BOOST-DRV8848 Dual Brushed Motor BoosterPack",
+      "description": "A two-layer tscircuit implementation of Texas Instruments' BOOST-DRV8848 revision-A BoosterPack. The board follows TI's published hardware design and uses the DRV8848 dual H-bridge driver to control one or two brushed DC motors from a compatible LaunchPad.",
+      "tags": [
+        "motor control",
+        "power electronics",
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boost-drv8848",
+      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "assets": {
+        "glb": "/boards/boost-drv8848/board.glb",
+        "thumbnail": "/boards/boost-drv8848/thumbnail.png",
+        "pcbSvg": "/boards/boost-drv8848/pcb.svg",
+        "kicadZip": "/boards/boost-drv8848/kicad.zip",
+        "altiumZip": "/boards/boost-drv8848/altium.zip",
+        "schematicPdf": "/boards/boost-drv8848/schematic.pdf"
+      }
+    },
+    {
+      "slug": "boostxl-drv8305evm",
+      "name": "BOOSTXL-DRV8305EVM Motor-Drive BoosterPack",
+      "description": "This project is a tscircuit reference implementation inspired by Texas Instruments' BOOSTXL-DRV8305EVM. It recreates the board's main electrical architecture and LaunchPad XL interface from TI's BOOSTXL-DRV8305EVM User's Guide.",
+      "tags": [
+        "motor control",
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-drv8305evm",
+      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "assets": {
+        "glb": "/boards/boostxl-drv8305evm/board.glb",
+        "thumbnail": "/boards/boostxl-drv8305evm/thumbnail.png",
+        "pcbSvg": "/boards/boostxl-drv8305evm/pcb.svg",
+        "kicadZip": "/boards/boostxl-drv8305evm/kicad.zip",
+        "altiumZip": "/boards/boostxl-drv8305evm/altium.zip",
+        "schematicPdf": "/boards/boostxl-drv8305evm/schematic.pdf"
+      }
+    },
+    {
+      "slug": "boostxl-edumkii",
+      "name": "Educational BoosterPack TS",
+      "description": "A two-layer tscircuit board inspired by TI's BOOSTXL-EDUMKII Educational BoosterPack. It retains the wide, rounded BoosterPack form factor and combines a display, environmental and motion sensors, user controls, audio I/O, lighting, and a servo connector on one LaunchPad XL-compatible board.",
+      "tags": [
+        "motion sensing",
+        "education",
+        "sensors",
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-edumkii",
+      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "assets": {
+        "glb": "/boards/boostxl-edumkii/board.glb",
+        "thumbnail": "/boards/boostxl-edumkii/thumbnail.png",
+        "pcbSvg": "/boards/boostxl-edumkii/pcb.svg",
+        "kicadZip": "/boards/boostxl-edumkii/kicad.zip",
+        "altiumZip": "/boards/boostxl-edumkii/altium.zip",
+        "schematicPdf": "/boards/boostxl-edumkii/schematic.pdf"
+      }
+    },
+    {
+      "slug": "boostxl-tlv8544pir",
+      "name": "BOOSTXL-TLV8544PIR tscircuit reconstruction",
+      "description": "This is an engineering reconstruction of Texas Instruments' BOOSTXL-TLV8544PIR PIR motion-detector BoosterPack.",
+      "tags": [
+        "motion sensing",
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-tlv8544pir",
+      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "assets": {
+        "glb": "/boards/boostxl-tlv8544pir/board.glb",
+        "thumbnail": "/boards/boostxl-tlv8544pir/thumbnail.png",
+        "pcbSvg": "/boards/boostxl-tlv8544pir/pcb.svg",
+        "kicadZip": "/boards/boostxl-tlv8544pir/kicad.zip",
+        "altiumZip": "/boards/boostxl-tlv8544pir/altium.zip",
+        "schematicPdf": "/boards/boostxl-tlv8544pir/schematic.pdf"
+      }
+    },
+    {
+      "slug": "boostxl-tmp107",
+      "name": "BOOSTXL-TMP107 tscircuit reconstruction",
+      "description": "This project reconstructs the Texas Instruments BOOSTXL-TMP107 BoosterPack in tscircuit. The electrical design follows TI's MHR035 Rev A schematic in the official BOOSTXL-TMP107 user guide. The board includes the LaunchPad headers, selectable UART transmit path, main TMP107, and two breakaway TMP107 sensor nodes.",
+      "tags": [
+        "temperature",
+        "sensors",
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-tmp107",
+      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "assets": {
+        "glb": "/boards/boostxl-tmp107/board.glb",
+        "thumbnail": "/boards/boostxl-tmp107/thumbnail.png",
+        "pcbSvg": "/boards/boostxl-tmp107/pcb.svg",
+        "kicadZip": "/boards/boostxl-tmp107/kicad.zip",
+        "altiumZip": "/boards/boostxl-tmp107/altium.zip",
+        "schematicPdf": "/boards/boostxl-tmp107/schematic.pdf"
+      }
+    },
+    {
+      "slug": "boostxl-uln2003",
+      "name": "BOOSTXL-ULN2003 dual stepper-motor BoosterPack",
+      "description": "Native tscircuit reconstruction of Texas Instruments' BOOSTXL-ULN2003 BoosterPack. The electrical design follows the official SLCU002 schematic and includes the fitted ULN2003 driver path, eighth CSD17571Q2 output, serial/parallel control, mode switches, status LEDs, motor connectors, supply protection, and DNP alternatives.",
+      "tags": [
+        "motor control",
+        "power electronics",
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-uln2003",
+      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "assets": {
+        "glb": "/boards/boostxl-uln2003/board.glb",
+        "thumbnail": "/boards/boostxl-uln2003/thumbnail.png",
+        "pcbSvg": "/boards/boostxl-uln2003/pcb.svg",
+        "kicadZip": "/boards/boostxl-uln2003/kicad.zip",
+        "altiumZip": "/boards/boostxl-uln2003/altium.zip",
+        "schematicPdf": "/boards/boostxl-uln2003/schematic.pdf"
+      }
+    }
+  ]
 }

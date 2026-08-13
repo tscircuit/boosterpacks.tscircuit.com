@@ -8,6 +8,7 @@ import {
   writeFile,
 } from "node:fs/promises"
 import { dirname, join, resolve } from "node:path"
+import JSZip from "jszip"
 import {
   computeWorldAABB,
   createSceneFromGLTF,
@@ -16,6 +17,7 @@ import {
   renderSceneFromGLTF,
 } from "poppygl"
 import type { BoardManifest, BoosterBoard } from "lib/board-types"
+import { convertCircuitJsonToAltiumZip } from "./circuit-json-to-altium"
 
 const SOURCE_REPOSITORY = "https://github.com/tscircuit/boosters"
 const projectRoot = resolve(import.meta.dir, "..")
@@ -102,6 +104,77 @@ async function pathExists(path: string) {
   } catch {
     return false
   }
+}
+
+async function addHierarchicalSchematicsToKicadZip(
+  circuitJson: Array<Record<string, unknown> & { type?: string }>,
+  outputDir: string,
+  kicadZipPath: string,
+) {
+  const sheets = circuitJson
+    .filter((element) => element.type === "schematic_sheet")
+    .sort(
+      (a, b) =>
+        (typeof a.sheet_index === "number" ? a.sheet_index : 0) -
+        (typeof b.sheet_index === "number" ? b.sheet_index : 0),
+    )
+  if (sheets.length === 0) return
+  const zip = await JSZip.loadAsync(await readFile(kicadZipPath))
+  const rootSchematic = await zip
+    .file("board.circuit.kicad_sch")
+    ?.async("string")
+  if (!rootSchematic) {
+    throw new Error("KiCad ZIP is missing its root schematic")
+  }
+  const childFilenames = [
+    ...rootSchematic.matchAll(/\(property "Sheetfile" "([^"]+)"/gu),
+  ].map((match) => match[1] as string)
+  if (childFilenames.length !== sheets.length) {
+    throw new Error(
+      `KiCad ZIP references ${childFilenames.length} child schematics for ${sheets.length} sheets`,
+    )
+  }
+
+  for (const [index, sheet] of sheets.entries()) {
+    const sheetId =
+      typeof sheet.schematic_sheet_id === "string"
+        ? sheet.schematic_sheet_id
+        : undefined
+    const childCircuitJson = circuitJson.filter((element) => {
+      if (element.type === "schematic_sheet") return false
+      if (!element.type?.startsWith("schematic_")) return true
+      const elementSheetId =
+        typeof element.schematic_sheet_id === "string"
+          ? element.schematic_sheet_id
+          : undefined
+      return elementSheetId === sheetId || (index === 0 && !elementSheetId)
+    })
+    const inputFilename = `kicad-sheet-${index + 1}.circuit.json`
+    const outputFilename = childFilenames[index] as string
+    await writeFile(
+      join(outputDir, inputFilename),
+      `${JSON.stringify(childCircuitJson)}\n`,
+    )
+    await runCommand(
+      [
+        "bunx",
+        "tsci",
+        "export",
+        inputFilename,
+        "-f",
+        "kicad_sch",
+        "-o",
+        outputFilename,
+      ],
+      outputDir,
+    )
+    zip.file(outputFilename, await readFile(join(outputDir, outputFilename)))
+    await Promise.all([
+      rm(join(outputDir, inputFilename), { force: true }),
+      rm(join(outputDir, outputFilename), { force: true }),
+    ])
+  }
+  await writeFile(kicadZipPath, await zip.generateAsync({ type: "uint8array" }))
 }
 
 async function findFiles(root: string, filename: string): Promise<string[]> {
@@ -201,16 +274,50 @@ async function buildBoardRecord(
   await Promise.all([
     copyFile(join(outputDir, "3d.glb"), join(destination, "board.glb")),
     copyFile(join(outputDir, "pcb.svg"), join(destination, "pcb.svg")),
-    copyFile(
-      join(outputDir, "schematic.svg"),
-      join(destination, "schematic.svg"),
-    ),
   ])
 
   const glb = await readFile(join(destination, "board.glb"))
   const circuitJson = JSON.parse(
     await readFile(join(outputDir, "circuit.json"), "utf8"),
-  ) as Array<Record<string, unknown>>
+  ) as Array<Record<string, unknown> & { type?: string }>
+  const exportCircuitJsonFilename = "board.circuit.json"
+  await copyFile(
+    join(outputDir, "circuit.json"),
+    join(outputDir, exportCircuitJsonFilename),
+  )
+  for (const [format, output] of [
+    ["schematic-pdf", "schematic.pdf"],
+    ["kicad_zip", "kicad.zip"],
+  ] as const) {
+    await runCommand(
+      [
+        "bunx",
+        "tsci",
+        "export",
+        exportCircuitJsonFilename,
+        "-f",
+        format,
+        "-o",
+        output,
+      ],
+      outputDir,
+    )
+  }
+  await rm(join(outputDir, exportCircuitJsonFilename), { force: true })
+  await addHierarchicalSchematicsToKicadZip(
+    circuitJson,
+    outputDir,
+    join(outputDir, "kicad.zip"),
+  )
+  const altiumZip = await convertCircuitJsonToAltiumZip(circuitJson, slug)
+  await Promise.all([
+    copyFile(
+      join(outputDir, "schematic.pdf"),
+      join(destination, "schematic.pdf"),
+    ),
+    copyFile(join(outputDir, "kicad.zip"), join(destination, "kicad.zip")),
+    writeFile(join(destination, "altium.zip"), altiumZip),
+  ])
   const pcbBoard = circuitJson.find((element) => element.type === "pcb_board")
   const boardSpan = Math.max(
     typeof pcbBoard?.width === "number" ? pcbBoard.width : 100,
@@ -229,7 +336,7 @@ async function buildBoardRecord(
   const { gltf, resources } = await loadGLTFWithResourcesFromURL(
     "https://local.invalid/board.glb",
     {
-      fetchImpl: async () => new Response(glb),
+      fetchImpl: async () => new Response(new Uint8Array(glb)),
     },
   )
   const scene = createSceneFromGLTF(gltf, resources)
@@ -279,7 +386,9 @@ async function buildBoardRecord(
       glb: `/boards/${slug}/board.glb`,
       thumbnail: `/boards/${slug}/thumbnail.png`,
       pcbSvg: `/boards/${slug}/pcb.svg`,
-      schematicSvg: `/boards/${slug}/schematic.svg`,
+      kicadZip: `/boards/${slug}/kicad.zip`,
+      altiumZip: `/boards/${slug}/altium.zip`,
+      schematicPdf: `/boards/${slug}/schematic.pdf`,
     },
   }
 }

@@ -2,7 +2,9 @@ export type BoardAssets = {
   glb: string
   thumbnail: string
   pcbSvg: string
-  schematicSvg: string
+  kicadZip: string
+  altiumZip: string
+  schematicPdf: string
 }
 
 export type BoosterBoard = {

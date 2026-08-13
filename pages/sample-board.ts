@@ -12,6 +12,8 @@ export const sampleBoard: BoosterBoard = {
     glb: "/boards/boostxl-edumkii/board.glb",
     thumbnail: "/boards/boostxl-edumkii/thumbnail.png",
     pcbSvg: "/boards/boostxl-edumkii/pcb.svg",
-    schematicSvg: "/boards/boostxl-edumkii/schematic.svg",
+    kicadZip: "/boards/boostxl-edumkii/kicad.zip",
+    altiumZip: "/boards/boostxl-edumkii/altium.zip",
+    schematicPdf: "/boards/boostxl-edumkii/schematic.pdf",
   },
 }

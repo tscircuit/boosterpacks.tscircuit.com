@@ -3,8 +3,8 @@
 A searchable, two-page directory of the TI BoosterPack boards in
 [`tscircuit/boosters`](https://github.com/tscircuit/boosters). The index shows a
 PoppyGL-rendered thumbnail for every discovered board. Board detail pages load
-the generated GLB in an interactive viewer and expose the PCB and schematic as
-full-resolution SVGs.
+the generated GLB in an interactive viewer, show the PCB as a full-resolution
+SVG, and provide pre-generated design downloads.
 
 ## How it works
 
@@ -12,10 +12,14 @@ full-resolution SVGs.
 
 1. Clone or update `tscircuit/boosters`.
 2. Discover every top-level directory containing `index.circuit.tsx`.
-3. Build routed Circuit JSON, GLB, PCB SVG, and schematic SVG outputs with
-   `tsci`.
-4. Render each GLB to a thumbnail with PoppyGL.
-5. Write the public asset tree and searchable board manifest.
+3. Build routed Circuit JSON, GLB, PCB SVG, and schematic outputs with `tsci`.
+4. Pre-generate KiCad and Altium project ZIPs plus a multi-page schematic PDF.
+5. Render each GLB to a thumbnail with PoppyGL.
+6. Write the public asset tree and searchable board manifest.
+
+Each generated board directory contains the interactive GLB, thumbnail, PCB
+SVG, `kicad.zip`, `altium.zip`, and `schematic.pdf`. The tscircuit project link
+points directly to the corresponding source directory in `tscircuit/boosters`.
 
 Because discovery is automatic, adding a board to `tscircuit/boosters` is
 enough for it to appear on the next site build.

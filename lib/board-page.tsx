@@ -70,15 +70,7 @@ export function BoardPage({ board }: BoardPageProps) {
           </div>
         </section>
 
-        <section className="board-views">
-          <div className="board-views__heading">
-            <div>
-              <div className="section-label">Design files</div>
-              <h2>Board documentation</h2>
-            </div>
-            <p>Generated directly from this board’s tscircuit source.</p>
-          </div>
-
+        <section className="board-views" aria-label="PCB preview and downloads">
           <div className="documentation-grid">
             <article className="pcb-panel">
               <div className="pcb-panel__canvas">
@@ -90,30 +82,57 @@ export function BoardPage({ board }: BoardPageProps) {
             </article>
 
             <aside className="download-panel">
-              <div className="download-panel__icon" aria-hidden="true">
-                ↓
+              <div className="download-panel__heading">
+                <h2>Downloads</h2>
+                <span>Pre-generated</span>
               </div>
-              <div className="file-type">Schematic</div>
-              <h3>Download the full schematic</h3>
-              <p>
-                The schematic may contain multiple pages. Download the SVG to
-                review the complete circuit drawing.
-              </p>
-              <div className="download-panel__meta">
-                <span>SVG document</span>
-                <span>Multi-page</span>
-              </div>
-              <a
-                className="download-link"
-                href={board.assets.schematicSvg}
-                download={`${board.slug}-schematic.svg`}
-              >
-                Download schematic <span aria-hidden="true">↓</span>
-              </a>
-              <div className="download-panel__rule" />
-              <span className="download-panel__note">
-                Generated from tscircuit source
-              </span>
+              <nav className="download-list" aria-label="Board downloads">
+                <a
+                  className="download-option"
+                  href={board.assets.kicadZip}
+                  download={`${board.slug}-kicad.zip`}
+                >
+                  <span className="download-option__format">KiCad</span>
+                  <span className="download-option__name">Project ZIP</span>
+                  <span className="download-option__action" aria-hidden="true">
+                    ↓
+                  </span>
+                </a>
+                <a
+                  className="download-option"
+                  href={board.githubUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span className="download-option__format">tscircuit</span>
+                  <span className="download-option__name">Project source</span>
+                  <span className="download-option__action" aria-hidden="true">
+                    ↗
+                  </span>
+                </a>
+                <a
+                  className="download-option"
+                  href={board.assets.altiumZip}
+                  download={`${board.slug}-altium.zip`}
+                >
+                  <span className="download-option__format">Altium</span>
+                  <span className="download-option__name">Project ZIP</span>
+                  <span className="download-option__action" aria-hidden="true">
+                    ↓
+                  </span>
+                </a>
+                <a
+                  className="download-option"
+                  href={board.assets.schematicPdf}
+                  download={`${board.slug}-schematic.pdf`}
+                >
+                  <span className="download-option__format">Schematic</span>
+                  <span className="download-option__name">PDF document</span>
+                  <span className="download-option__action" aria-hidden="true">
+                    ↓
+                  </span>
+                </a>
+              </nav>
             </aside>
           </div>
         </section>
