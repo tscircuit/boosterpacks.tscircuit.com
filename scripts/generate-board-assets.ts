@@ -17,7 +17,7 @@ import {
   renderSceneFromGLTF,
 } from "poppygl"
 import type { BoardManifest, BoosterBoard } from "lib/board-types"
-import { convertCircuitJsonToAltiumZip } from "./circuit-json-to-altium"
+import { convertCircuitJsonToAltiumZip } from "circuit-json-to-altium"
 
 const SOURCE_REPOSITORY = "https://github.com/tscircuit/boosters"
 const projectRoot = resolve(import.meta.dir, "..")

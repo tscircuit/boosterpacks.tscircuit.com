@@ -5,6 +5,7 @@
   "files": ["lib"],
   "type": "module",
   "private": true,
+  "trustedDependencies": ["altiumts"],
   "scripts": {
     "build": "bun run generate:boards && bun run build:site",
     "build:site": "vite build && bun run scripts/create-static-routes.ts",
@@ -33,8 +34,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
-    "altiumts": "^0.0.16",
-    "cfb": "^1.2.2",
+    "circuit-json-to-altium": "github:tscircuit/circuit-json-to-altium#b7027586888496a21c8531fffd2f871068d5f64d",
     "jszip": "^3.10.1",
     "react-cosmos": "^7.3.0",
     "react-cosmos-plugin-vite": "^7.3.0",
