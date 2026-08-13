@@ -1,15 +1,14 @@
 import {
+  parseAltiumBinaryPcbDoc,
   parseAltiumPcbDoc,
   parseAltiumPrjPcb,
   parseAltiumSchDoc,
 } from "altiumts"
-import {
-  convertSoupToExcellonDrillCommands,
-  convertSoupToGerberCommands,
-  stringifyExcellonDrill,
-  stringifyGerberCommandLayers,
-} from "circuit-json-to-gerber"
 import JSZip from "jszip"
+import {
+  createBinaryPcbDocument,
+  createBinarySchematicDocument,
+} from "./altium-binary"
 
 type CircuitElement = Record<string, unknown> & { type?: string }
 type Point = { x: number; y: number }
@@ -564,46 +563,14 @@ const createSchematicDocument = (
   return `${lines.join("\r\n")}\r\n`
 }
 
-const addViewerCompatibleManufacturingFiles = (
-  zip: JSZip,
-  circuitJson: CircuitElement[],
-) => {
-  const gerberCircuitJson = circuitJson as Parameters<
-    typeof convertSoupToGerberCommands
-  >[0]
-  const gerberLayers = stringifyGerberCommandLayers(
-    convertSoupToGerberCommands(gerberCircuitJson, { flip_y_axis: false }),
-  )
-
-  for (const [filename, content] of Object.entries(gerberLayers)) {
-    zip.file(`manufacturing/${filename}.gbr`, content)
-  }
-
-  for (const { filename, isPlated } of [
-    { filename: "drill.drl", isPlated: true },
-    { filename: "drill_npth.drl", isPlated: false },
-  ]) {
-    const drillCommands = convertSoupToExcellonDrillCommands({
-      circuitJson: gerberCircuitJson,
-      is_plated: isPlated,
-      flip_y_axis: false,
-    })
-    if (drillCommands.length > 0) {
-      zip.file(
-        `manufacturing/${filename}`,
-        stringifyExcellonDrill(drillCommands),
-      )
-    }
-  }
-}
-
 export async function convertCircuitJsonToAltiumZip(
   circuitJson: CircuitElement[],
   projectName: string,
 ): Promise<Uint8Array> {
   const safeProjectName = sanitizeFilename(projectName)
   const pcbFilename = `${safeProjectName}.PcbDoc`
-  const pcbDocument = createPcbDocument(circuitJson)
+  const pcbAsciiDocument = createPcbDocument(circuitJson)
+  const pcbDocument = createBinaryPcbDocument(pcbAsciiDocument)
   const sheets = byType(circuitJson, "schematic_sheet").sort(
     (a, b) => asNumber(a.sheet_index) - asNumber(b.sheet_index),
   )
@@ -613,13 +580,14 @@ export async function convertCircuitJsonToAltiumZip(
       sheetDefinitions.length > 1
         ? `-${String(index + 1).padStart(2, "0")}`
         : ""
+    const asciiContent = createSchematicDocument(
+      circuitJson,
+      sheet ? asString(sheet.schematic_sheet_id) : undefined,
+      index === 0,
+    )
     return {
       filename: `${safeProjectName}${suffix}.SchDoc`,
-      content: createSchematicDocument(
-        circuitJson,
-        sheet ? asString(sheet.schematic_sheet_id) : undefined,
-        index === 0,
-      ),
+      content: createBinarySchematicDocument(asciiContent),
     }
   })
   const projectFilename = `${safeProjectName}.PrjPcb`
@@ -641,7 +609,8 @@ export async function convertCircuitJsonToAltiumZip(
     ]),
   ].join("\r\n")
 
-  parseAltiumPcbDoc(pcbDocument, { mode: "strict" })
+  parseAltiumPcbDoc(pcbAsciiDocument, { mode: "strict" })
+  parseAltiumBinaryPcbDoc(pcbDocument)
   for (const schematic of schematicFiles) {
     parseAltiumSchDoc(schematic.content)
   }
@@ -653,7 +622,6 @@ export async function convertCircuitJsonToAltiumZip(
   for (const schematic of schematicFiles) {
     zip.file(schematic.filename, schematic.content)
   }
-  addViewerCompatibleManufacturingFiles(zip, circuitJson)
   zip.file(
     "README.txt",
     [
@@ -661,7 +629,7 @@ export async function convertCircuitJsonToAltiumZip(
       "",
       "Generated in advance from the board's routed Circuit JSON.",
       `Open ${projectFilename} in Altium Designer.`,
-      "The manufacturing directory contains Gerber and drill files for Altium 365 Viewer compatibility.",
+      "PCB and schematic documents use Altium's native binary compound-file format.",
     ].join("\r\n"),
   )
 
