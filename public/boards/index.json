@@ -1,7 +1,27 @@
 {
   "sourceRepository": "https://github.com/tscircuit/boosters",
-  "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+  "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
   "boards": [
+    {
+      "slug": "boost-drv8711",
+      "name": "BOOST-DRV8711 Stepper Motor BoosterPack",
+      "description": "A two-layer tscircuit implementation of Texas Instruments' BOOST-DRV8711 BoosterPack. The board follows TI's published hardware design and combines the DRV8711 stepper-motor pre-driver with four CSD88537ND dual N-channel MOSFETs.",
+      "tags": [
+        "motor control",
+        "power electronics",
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boost-drv8711",
+      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "assets": {
+        "glb": "/boards/boost-drv8711/board.glb",
+        "thumbnail": "/boards/boost-drv8711/thumbnail.png",
+        "pcbSvg": "/boards/boost-drv8711/pcb.svg",
+        "kicadZip": "/boards/boost-drv8711/kicad.zip",
+        "altiumZip": "/boards/boost-drv8711/altium.zip",
+        "schematicPdf": "/boards/boost-drv8711/schematic.pdf"
+      }
+    },
     {
       "slug": "boost-drv8848",
       "name": "BOOST-DRV8848 Dual Brushed Motor BoosterPack",
@@ -12,7 +32,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boost-drv8848",
-      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
       "assets": {
         "glb": "/boards/boost-drv8848/board.glb",
         "thumbnail": "/boards/boost-drv8848/thumbnail.png",
@@ -20,6 +40,78 @@
         "kicadZip": "/boards/boost-drv8848/kicad.zip",
         "altiumZip": "/boards/boost-drv8848/altium.zip",
         "schematicPdf": "/boards/boost-drv8848/schematic.pdf"
+      }
+    },
+    {
+      "slug": "boostxl-ads1119",
+      "name": "BOOSTXL-ADS1119 data-acquisition BoosterPack",
+      "description": "Native tscircuit reconstruction of Texas Instruments' BOOSTXL-ADS1119 16-bit analog-to-digital converter BoosterPack. The circuit, fitted parts, four DNP references, values, and functional connections follow TI user guide SBAU322 and its Figure 27 schematic.",
+      "tags": [
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-ads1119",
+      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "assets": {
+        "glb": "/boards/boostxl-ads1119/board.glb",
+        "thumbnail": "/boards/boostxl-ads1119/thumbnail.png",
+        "pcbSvg": "/boards/boostxl-ads1119/pcb.svg",
+        "kicadZip": "/boards/boostxl-ads1119/kicad.zip",
+        "altiumZip": "/boards/boostxl-ads1119/altium.zip",
+        "schematicPdf": "/boards/boostxl-ads1119/schematic.pdf"
+      }
+    },
+    {
+      "slug": "boostxl-ads7841-q1",
+      "name": "BOOSTXL-ADS7841-Q1 data-acquisition BoosterPack",
+      "description": "Native tscircuit reconstruction of Texas Instruments' four-channel BOOSTXL-ADS7841-Q1 data-acquisition BoosterPack. The circuit, fitted and DNP parts, values, and functional connections follow TI user guide SNAU229 Figure 19 and its bill of materials.",
+      "tags": [
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-ads7841-q1",
+      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "assets": {
+        "glb": "/boards/boostxl-ads7841-q1/board.glb",
+        "thumbnail": "/boards/boostxl-ads7841-q1/thumbnail.png",
+        "pcbSvg": "/boards/boostxl-ads7841-q1/pcb.svg",
+        "kicadZip": "/boards/boostxl-ads7841-q1/kicad.zip",
+        "altiumZip": "/boards/boostxl-ads7841-q1/altium.zip",
+        "schematicPdf": "/boards/boostxl-ads7841-q1/schematic.pdf"
+      }
+    },
+    {
+      "slug": "boostxl-audio",
+      "name": "BOOSTXL-AUDIO audio BoosterPack",
+      "description": "Native tscircuit reconstruction of Texas Instruments' BOOSTXL-AUDIO BoosterPack. The electrical design follows TI's official schematic and BOM; the PCB uses TI's exact 58.42 × 76.20 mm outline, recovered Altium component centers, and exact TI 0603 copper geometry.",
+      "tags": [
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-audio",
+      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "assets": {
+        "glb": "/boards/boostxl-audio/board.glb",
+        "thumbnail": "/boards/boostxl-audio/thumbnail.png",
+        "pcbSvg": "/boards/boostxl-audio/pcb.svg",
+        "kicadZip": "/boards/boostxl-audio/kicad.zip",
+        "altiumZip": "/boards/boostxl-audio/altium.zip",
+        "schematicPdf": "/boards/boostxl-audio/schematic.pdf"
+      }
+    },
+    {
+      "slug": "boostxl-cc2650ma",
+      "name": "BOOSTXL-CC2650MA tscircuit reconstruction",
+      "description": "This directory reconstructs Texas Instruments' BOOSTXL-CC2650MA CC2650 module BoosterPack in tscircuit. The electrical design follows the Rev 1.0.1 schematic and expanded Allegro netlist in TI's official SWRC324 design package.",
+      "tags": [
+        "LaunchPad"
+      ],
+      "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-cc2650ma",
+      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
+      "assets": {
+        "glb": "/boards/boostxl-cc2650ma/board.glb",
+        "thumbnail": "/boards/boostxl-cc2650ma/thumbnail.png",
+        "pcbSvg": "/boards/boostxl-cc2650ma/pcb.svg",
+        "kicadZip": "/boards/boostxl-cc2650ma/kicad.zip",
+        "altiumZip": "/boards/boostxl-cc2650ma/altium.zip",
+        "schematicPdf": "/boards/boostxl-cc2650ma/schematic.pdf"
       }
     },
     {
@@ -31,7 +123,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-drv8305evm",
-      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
       "assets": {
         "glb": "/boards/boostxl-drv8305evm/board.glb",
         "thumbnail": "/boards/boostxl-drv8305evm/thumbnail.png",
@@ -52,7 +144,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-edumkii",
-      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
       "assets": {
         "glb": "/boards/boostxl-edumkii/board.glb",
         "thumbnail": "/boards/boostxl-edumkii/thumbnail.png",
@@ -71,7 +163,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-tlv8544pir",
-      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
       "assets": {
         "glb": "/boards/boostxl-tlv8544pir/board.glb",
         "thumbnail": "/boards/boostxl-tlv8544pir/thumbnail.png",
@@ -91,7 +183,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-tmp107",
-      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
       "assets": {
         "glb": "/boards/boostxl-tmp107/board.glb",
         "thumbnail": "/boards/boostxl-tmp107/thumbnail.png",
@@ -111,7 +203,7 @@
         "LaunchPad"
       ],
       "githubUrl": "https://github.com/tscircuit/boosters/tree/main/boostxl-uln2003",
-      "sourceCommit": "39bd3c74c25668dc64086c78292494fc88437113",
+      "sourceCommit": "a392b7e12c7a45560bebc87531d11db132666a56",
       "assets": {
         "glb": "/boards/boostxl-uln2003/board.glb",
         "thumbnail": "/boards/boostxl-uln2003/thumbnail.png",
