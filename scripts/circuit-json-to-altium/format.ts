@@ -1,3 +1,4 @@
+import { sanitizeAltiumFieldText } from "altiumts"
 import type { CircuitElement, Point } from "./types"
 
 export const MILLIMETERS_TO_MILS = 39.3700787402
@@ -34,15 +35,7 @@ export const sanitizeField = (field: unknown): string => {
     typeof field === "number" && Number.isFinite(field)
       ? String(field)
       : asString(field)
-  return [...rawField]
-    .map((character) => {
-      const characterCode = character.charCodeAt(0)
-      return character === "|" || characterCode < 32 || characterCode === 127
-        ? " "
-        : character
-    })
-    .join("")
-    .trim()
+  return sanitizeAltiumFieldText(rawField).trim()
 }
 
 export const sanitizeFilename = (filename: string): string => {
