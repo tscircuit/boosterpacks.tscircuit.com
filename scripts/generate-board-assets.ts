@@ -416,7 +416,7 @@ export async function generateBoardAssets() {
         "--concurrency",
         "4",
         "--autorouter-timeout",
-        "600s",
+        "1200s",
         "--all-images",
         "--svgs",
         "--glbs",
