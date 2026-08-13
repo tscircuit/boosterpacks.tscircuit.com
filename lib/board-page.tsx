@@ -45,7 +45,6 @@ export function BoardPage({ board }: BoardPageProps) {
 
           <div className="model-stage">
             <div className="model-stage__topline">
-              <span>Interactive assembly</span>
               <span className="model-stage__live">
                 <i /> GLB
               </span>
@@ -84,9 +83,19 @@ export function BoardPage({ board }: BoardPageProps) {
             <aside className="download-panel">
               <div className="download-panel__heading">
                 <h2>Downloads</h2>
-                <span>Pre-generated</span>
               </div>
               <nav className="download-list" aria-label="Board downloads">
+                <a
+                  className="download-option"
+                  href={board.assets.schematicPdf}
+                  download={`${board.slug}-schematic.pdf`}
+                >
+                  <span className="download-option__format">Schematic</span>
+                  <span className="download-option__name">PDF document</span>
+                  <span className="download-option__action" aria-hidden="true">
+                    ↓
+                  </span>
+                </a>
                 <a
                   className="download-option"
                   href={board.assets.kicadZip}
@@ -117,17 +126,6 @@ export function BoardPage({ board }: BoardPageProps) {
                 >
                   <span className="download-option__format">Altium</span>
                   <span className="download-option__name">Project ZIP</span>
-                  <span className="download-option__action" aria-hidden="true">
-                    ↓
-                  </span>
-                </a>
-                <a
-                  className="download-option"
-                  href={board.assets.schematicPdf}
-                  download={`${board.slug}-schematic.pdf`}
-                >
-                  <span className="download-option__format">Schematic</span>
-                  <span className="download-option__name">PDF document</span>
                   <span className="download-option__action" aria-hidden="true">
                     ↓
                   </span>

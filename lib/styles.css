@@ -554,7 +554,7 @@ img {
   left: 22px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 10px;
   font-weight: 700;
@@ -646,9 +646,6 @@ img {
 }
 
 .download-panel__heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: 14px 14px 18px;
 }
 
@@ -656,15 +653,6 @@ img {
   margin: 0;
   font-size: 17px;
   letter-spacing: -0.025em;
-}
-
-.download-panel__heading > span {
-  color: #98a2b3;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .download-list {
