@@ -34,7 +34,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
-    "circuit-json-to-altium": "github:tscircuit/circuit-json-to-altium#b7027586888496a21c8531fffd2f871068d5f64d",
+    "circuit-json-to-altium": "github:tscircuit/circuit-json-to-altium#cde6978e3a92ad2cb5e4cb4506c33f0c73aae6f2",
     "jszip": "^3.10.1",
     "react-cosmos": "^7.3.0",
     "react-cosmos-plugin-vite": "^7.3.0",
