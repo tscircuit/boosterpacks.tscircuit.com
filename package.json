@@ -28,12 +28,12 @@
     "react-dom": "^19.2.8"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.8",
+    "@biomejs/biome": "^2.5.9",
     "@types/bun": "^1.3.14",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.0.5",
-    "circuit-json-to-altium": "github:tscircuit/circuit-json-to-altium#1da8390f651e550c20551e4305472d026a18700b",
+    "circuit-json-to-altium": "github:tscircuit/circuit-json-to-altium#34519d021d01d1097fda7f2238f072166d67ecc1",
     "jszip": "^3.10.1",
     "react-cosmos": "^7.3.0",
     "react-cosmos-plugin-vite": "^7.3.0",
@@ -41,5 +41,6 @@
     "vercel": "^58.10.0",
     "vite": "^8.2.1",
     "wrangler": "^4.122.0"
-  }
+  },
+  "trustedDependencies": ["altiumts"]
 }
